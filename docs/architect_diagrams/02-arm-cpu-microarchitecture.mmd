@@ -1,0 +1,93 @@
+flowchart LR
+    HOST["Wrapper / CPCI ports<br/>IMEM 9b x 32b<br/>DMEM 8b x 64b<br/>LA 11b x 64b"]
+    START["CPU_CTRL<br/>start_stop advances only<br/>the 2-bit scheduler"]
+
+    subgraph CPU["processor - quad-thread ARM-compatible FGMT pipeline"]
+        SCHED["Round-robin thread_id<br/>0 -> 1 -> 2 -> 3"]
+
+        subgraph IFM["IF_stage"]
+            PCS["Four 11-bit PCs<br/>reset 000 / 200 / 400 / 600<br/>{thread, 9-bit byte offset}"]
+            IMEM["inst_mem<br/>512 x 32 dual-port BRAM<br/>synchronous read"]
+            IFMETA["Registered PC+4,<br/>thread ID, PC index"]
+        end
+
+        IFID["ifid_reg<br/>instruction, PC+4,<br/>thread ID, PC index"]
+
+        subgraph IDM["ID"]
+            DEC["ARM subset decoder<br/>condition evaluation<br/>B / BX target in ID"]
+            RF["64 x 64 register file<br/>4 threads x 16 registers<br/>async read / sync WB"]
+        end
+
+        CPSR["Four CPSRs<br/>{N,Z,C,V} per thread"]
+        HALT["halted[3:0]<br/>exact instruction FFFFFFFF"]
+        IDEX["idex_reg<br/>3 x 64-bit operands +<br/>control, dst, tid, pcidx"]
+
+        subgraph EXM["EX_stage"]
+            SHIFT["64-bit barrel shifter<br/>LSL / LSR / ASR / ROR"]
+            ALU["alu64"]
+            ADDSUB["addsub64"]
+            LOGIC["logic64"]
+            SHIFT --> ALU
+            ADDSUB --> ALU
+            LOGIC --> ALU
+        end
+
+        EXMEM["exmem_reg<br/>ALU result, store data,<br/>NZCV + control + tid"]
+
+        subgraph MEMM["data_mem - MEM plus integrated MEM/WB registers"]
+            MAP["Address decode uses addr[7:0]"]
+            LDMEM["0x00-0x7F<br/>internal shared DMEM<br/>array 256 x 64"]
+            EXTFIFO["0x80-0xEF<br/>FIFO BRAM window<br/>FIFO index 0x00-0x6F"]
+            ALIAS["0xF0-0xFF<br/>wrapper-register alias<br/>DMA / GPU / FIFO control"]
+            MAP --> LDMEM
+            MAP --> EXTFIFO
+            MAP --> ALIAS
+        end
+
+        WB["WB (memwb_reg.v)<br/>memory / ALU-result mux"]
+        LA["logic_analyzer<br/>2048 x 64 circular trace<br/>WB + MEM events"]
+
+        SCHED --> PCS
+        PCS --> IMEM
+        PCS --> IFMETA
+        IMEM --> IFID
+        IFMETA --> IFID
+        IFID --> DEC
+        RF --> DEC
+        DEC --> IDEX
+        IDEX --> SHIFT
+        ALU --> EXMEM
+        EXMEM --> MAP
+        LDMEM --> WB
+        EXTFIFO --> WB
+        ALIAS --> WB
+        EXMEM -->|"registered ALU bypass"| WB
+        WB -->|"write data, dst, thread"| RF
+
+        DEC -. branch target + branch thread .-> PCS
+        CPSR -. condition flags .-> DEC
+        EXMEM -. set_flags + NZCV + thread .-> CPSR
+        DEC -. HALT + thread .-> HALT
+        HALT -. freeze only that thread PC .-> PCS
+        EXMEM -.-> LA
+        WB -.-> LA
+    end
+
+    START -.-> SCHED
+    HOST <--> IMEM
+    HOST <--> LDMEM
+    HOST <--> LA
+    EXTFIFO <--> FIFOPORT["lab8_wrapper FIFO proc bus<br/>8-bit address / 64-bit payload<br/>ownership: mode 1 + running"]
+    ALIAS <--> REGPORT["lab8_wrapper alias mux<br/>4-bit slot / 64-bit zero-extended read<br/>32-bit control writes"]
+
+    NOTE["No forwarding, hazard unit, stall, or branch flush.<br/>Continuous four-way FGMT spaces same-thread dependencies.<br/>start_stop=0 does not freeze PCs or pipeline registers."]
+    NOTE -.-> SCHED
+
+    classDef pipe fill:#eef1f4,stroke:#66717d,color:#1f2933;
+    classDef compute fill:#e8f5e9,stroke:#367a42,color:#17351e;
+    classDef memory fill:#fff3d6,stroke:#a76b00,color:#4f3400;
+    classDef control fill:#f1e9fb,stroke:#72509b,color:#352046;
+    class IFID,IDEX,EXMEM,WB pipe;
+    class DEC,RF,SHIFT,ALU,ADDSUB,LOGIC compute;
+    class IMEM,LDMEM,EXTFIFO,ALIAS,LA memory;
+    class SCHED,PCS,IFMETA,CPSR,HALT,START,HOST,FIFOPORT,REGPORT,NOTE control;

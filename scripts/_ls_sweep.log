@@ -1,0 +1,15 @@
+  seed=42  bf16=0.7776  float=0.7776
+  seed=43  bf16=0.7995  float=0.7995
+  seed=44  bf16=0.7777  float=0.7777
+  seed=45  bf16=0.7962  float=0.7962
+  seed=46  bf16=0.7692  float=0.7692
+  seed=47  bf16=0.7827  float=0.7827
+  seed=48  bf16=0.7916  float=0.7916
+  seed=49  bf16=0.7835  float=0.7835
+  seed=50  bf16=0.7698  float=0.7698
+  seed=51  bf16=0.7678  float=0.7678
+  seed=52  bf16=0.7817  float=0.7817
+  seed=53  bf16=0.8239  float=0.8239 *
+  seed=54  bf16=0.7915  float=0.7915
+  seed=55  bf16=0.7806  float=0.7806
+  seed=56  bf16=0.7971  float=0.7971

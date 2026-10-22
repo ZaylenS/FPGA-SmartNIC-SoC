@@ -1,0 +1,156 @@
+INVESTOR INTERVIEW QUESTIONS — Part 2 of Final Project Video
+=============================================================
+
+Framing
+-------
+The teammate's earlier interview covered a TECHNICAL / EXPERT angle:
+  (1) Biggest challenges in cybersecurity
+  (2) Is the increasing use of AI in cybersecurity an issue
+  (3) Limitations of modern IDS
+  (4) Advantages of hardware-accelerated ML for IDS
+
+These are "is the technology needed?" questions. Good, but not what Part 2
+needs. Part 2 must convince viewers (the audience IS investors in the
+framing of this presentation) that there is *real money to be made* in
+hardware-accelerated ML IDS. So this second interview should answer the
+investor's four gut questions:
+
+  A. Is the market big and growing?                  (TAM / trajectory)
+  B. Will real customers pay real money for this?    (WTP / pain urgency)
+  C. Can a startup actually win versus incumbents?   (moat / "why us")
+  D. Is there a credible exit?                       (acquirer landscape)
+
+Interviewee is framed as "an investor" — i.e. someone who can speak to the
+commercial / market / venture lens (VC, angel, finance contact, corp-dev,
+industry analyst, founder who has raised money, or a parent's friend
+playing that role per Prof Cho's explicit encouragement).
+
+Target output: ~20 seconds of quotable clip for the 90–120 sec video.
+Interview length: 10–15 minutes. Pick 5–7 of the 8 below based on time.
+Each question has an INTENT note so it is obvious why it is on the list
+and what kind of quote to cut for.
+
+
+Priority Questions (zero overlap with the teammate's interview)
+---------------------------------------------------------------
+
+Q1. MARKET SIZE & TRAJECTORY
+    "When you look at the market for network security hardware today —
+    SmartNICs, inspection appliances, security-focused DPUs — how big do
+    you think that market actually is, and what growth rate would get you
+    excited enough to back a startup in the space?"
+
+    INTENT: Get a number on camera. Even a rough one ("tens of billions,"
+    "20-plus percent CAGR") is gold. Answers category A.
+
+Q2. WILLINGNESS TO PAY / BUYER ROI
+    "Put yourself in the seat of a CISO or infrastructure buyer. What
+    argument do they actually need to hear to approve a new piece of
+    security hardware — avoided breach cost, a compliance checkbox,
+    performance headroom, something else? Where does the dollar justify
+    itself?"
+
+    INTENT: Pull-quote on how real buyers rationalize spend. Answers B.
+    The "avoided breach cost" framing is the cleanest for the video.
+
+Q3. FIRST-REVENUE CUSTOMER
+    "If a startup like this had a working prototype tomorrow, which buyer
+    archetype do you think is the fastest first revenue — hyperscalers,
+    telcos, financial services, federal, healthcare, or enterprise data
+    centers? Who is the easiest door to open, and who eventually writes
+    the biggest checks?"
+
+    INTENT: Concrete go-to-market signal. A name-drop ("banks will buy
+    this first") is a great soundbite. Answers B.
+
+Q4. COMPETITIVE MOAT vs. INCUMBENTS
+    "NVIDIA BlueField, AMD Pensando, and Intel IPU already ship
+    programmable SmartNICs. What's the honest case for why a startup
+    building a custom ML-IDS chip can win here — instead of being
+    steamrolled by the incumbents' distribution and customer lists?"
+
+    INTENT: This is the question investors always ask. A good answer
+    either validates a moat (specialization, toolchain, ML models,
+    footprint/cost, OEM design-wins) or gives us homework. Answers C.
+
+Q5. WHY NOW — THE TIMING WINDOW
+    "From a pure investor lens, why is 2026 a better moment to back
+    hardware-accelerated ML network security than, say, 2020? What has
+    changed — AI adoption, threat landscape, regulation, silicon economics
+    — that makes this a live opportunity right now?"
+
+    INTENT: Every investor pitch has a "why now." A punchy answer here
+    is the setup for our market-growth slide. Answers A + C.
+
+Q6. REGULATORY / COMPLIANCE TAILWINDS
+    "Which regulations or compliance regimes do you see actually moving
+    security budgets in 2026 — PCI-DSS, HIPAA, CMMC, EU AI Act, SEC
+    cyber-disclosure rules? Are any of them strong enough on their own
+    to force a purchase cycle we could ride?"
+
+    INTENT: Compliance = forced spend = predictable revenue. Investors
+    love this. A name-drop of a specific regulation makes our market
+    claim look researched. Answers A + B.
+
+Q7. EXIT LANDSCAPE
+    "When strategics like Broadcom, Cisco, Palo Alto, AMD, or NVIDIA look
+    at a company like this, what do they actually pay for — the silicon
+    IP, the ML models, the customer base, the team? And what does a
+    realistic exit path in this category look like today?"
+
+    INTENT: Answers D directly. A quote naming a realistic acquirer or
+    "nine-figure exits are normal in this category" would land perfectly.
+
+Q8. THE PASS / LEAN-IN TEST   *** money-question candidate ***
+    "If this company pitched you tomorrow, what is the ONE thing that
+    would make you pass, and what is the ONE piece of evidence that would
+    make you lean in and want to invest?"
+
+    INTENT: Forces a direct, quotable judgment. The "lean-in" answer is
+    the single most powerful soundbite we can get — it's an investor
+    effectively endorsing the direction on camera. Pair a yes-leaning
+    answer here with Q1's number for a killer 20-sec cut.
+
+
+Ranking if Time Runs Short
+--------------------------
+  Must-ask:    Q1 (market size), Q2 (WTP), Q8 (lean-in)
+  Strong-add:  Q4 (moat), Q7 (exit)
+  Nice-to-add: Q3 (first buyer), Q5 (why now), Q6 (regulation)
+
+
+Clip-Selection Shortlist (what to listen for during edit)
+---------------------------------------------------------
+  * A DOLLAR AMOUNT or GROWTH RATE           -> use for Hook (0-15s)
+  * A NAMED VERTICAL that will buy first     -> use for Market framing
+  * A NAMED ACQUIRER / EXIT                  -> use for Close
+  * A DIRECT "I'd lean in" quote             -> use as the pull-quote
+  * A NAMED REGULATION forcing spend         -> use for Market framing
+
+
+Interviewee-Specific Tweaks
+---------------------------
+If the interviewee is NOT a literal VC (e.g. a family friend in finance
+or tech), soften any question that puts them on the spot:
+
+  Q8 alternate: "If you were mentoring a founder with this idea, what
+                 would you tell them to prove before raising money?"
+
+  Q7 alternate: "If a bigger company bought a startup like this, what do
+                 you think they'd be buying — the chip, the software, or
+                 the people?"
+
+Same signal, less awkward. Professor's humble-framing rule applies here
+too — don't let the interviewee over-claim on our behalf.
+
+
+Ground Rules (keep on camera truthful)
+--------------------------------------
+  * Do not coach the interviewee to endorse specific performance numbers
+    (e.g. "say we're 3.28x faster"). Our 3.28x is vs our own scalar
+    baseline only — not vs commercial silicon. Over-claiming on camera
+    will backfire with a technical audience.
+  * Get written recording + publishing consent before the call.
+  * Send the final cut to the interviewee before the video is posted.
+  * If a quote gets cut for the video, trim for honesty — no clip that
+    materially misrepresents what they said.

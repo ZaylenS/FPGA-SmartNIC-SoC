@@ -1,0 +1,52 @@
+flowchart LR
+    NETIN["8 ingress queues<br/>64-bit data + 8-bit ctrl<br/>valid / ready"]
+    NETOUT["8 egress queues<br/>64-bit data + 8-bit ctrl<br/>valid / ready"]
+    SRAM["External SRAM<br/>19-bit address<br/>72-bit data"]
+    HOST["Host / CPCI<br/>23-bit word address<br/>32-bit register data"]
+
+    subgraph UDP["user_data_path"]
+        IA["input_arbiter<br/>stage 2"]
+        OPL["output_port_lookup<br/>stage 4"]
+
+        subgraph WRAP["lab8_wrapper"]
+            REGS["Register + control plane<br/>mode, resets, status,<br/>program/data access, cycle count"]
+            FIFO["convertible_fifo<br/>one-packet buffer<br/>256 x 72 dual-port BRAM"]
+            CPU["ARM-compatible CPU<br/>4-thread FGMT<br/>5 logical stages"]
+            DMA["Bidirectional DMA<br/>64-bit word/cycle after prime"]
+            GPU["GPU coprocessor<br/>6-stage pipeline<br/>4 x BF16; scalar INT16"]
+
+            REGS -.-> FIFO
+            REGS -.-> CPU
+            REGS -.-> DMA
+            REGS -.-> GPU
+            CPU <-->|"mode 1 / 64-bit"| FIFO
+            FIFO <-->|"mode 2 / 64-bit payload"| DMA
+            DMA <-->|"GPU DMEM Port B"| GPU
+        end
+
+        OQ["output_queues<br/>stage 6"]
+        URM["udp_reg_master"]
+
+        IA -->|"packet stream"| OPL
+        OPL -->|"packet stream"| FIFO
+        FIFO -->|"drain stream"| OQ
+        URM -. register ring .-> IA
+        IA -.-> OPL
+        OPL -.-> REGS
+        REGS -.-> OQ
+        OQ -.-> URM
+    end
+
+    NETIN --> IA
+    OQ --> NETOUT
+    OQ <--> SRAM
+    HOST <--> URM
+
+    classDef network fill:#e8f1fb,stroke:#245b8a,color:#102a43;
+    classDef compute fill:#e8f5e9,stroke:#367a42,color:#17351e;
+    classDef memory fill:#fff3d6,stroke:#a76b00,color:#4f3400;
+    classDef control fill:#f1e9fb,stroke:#72509b,color:#352046;
+    class NETIN,NETOUT,IA,OPL,OQ network;
+    class CPU,GPU compute;
+    class FIFO,DMA,SRAM memory;
+    class HOST,URM,REGS control;

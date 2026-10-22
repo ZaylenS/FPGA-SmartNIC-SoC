@@ -1,0 +1,695 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>BCAST — GPU cross-lane broadcast</title>
+<style>
+  :root {
+    --orange-fill: #fed7aa;
+    --orange-stroke: #c05621;
+    --green-fill: #c6f6d5;
+    --green-stroke: #2f855a;
+    --red-fill: #fed7d7;
+    --red-stroke: #c53030;
+    --blue-fill: #bee3f8;
+    --blue-stroke: #3182ce;
+    --yellow-fill: #faf089;
+    --yellow-stroke: #b7791f;
+    --pink-fill: #fed7e2;
+    --pink-stroke: #b83280;
+    --panel-fill: #f7fafc;
+    --panel-stroke: #4a5568;
+    --pipe-fill: #edf2f7;
+    --pipe-stroke: #2c5282;
+    --highlight-fill: #e8f2ff;
+    --highlight-stroke: #2c5282;
+    --sub-gray: #4a5568;
+    --counter-gray: #718096;
+    --title-blue: #1a365d;
+    --bar-before-fill: #fc8181;
+    --bar-before-stroke: #c53030;
+    --bar-after-fill: #68d391;
+    --bar-after-stroke: #2f855a;
+  }
+  html, body { margin: 0; padding: 0; height: 100vh; overflow: hidden; background: #1a1a1a; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif; color: #2d3748; }
+  #stageWrap { position: fixed; inset: 0; overflow: hidden; }
+  #stage { width: 1920px; height: 1080px; background: #ffffff; position: absolute; left: 50%; top: 50%; overflow: hidden; transform: translate(-50%, -50%); transform-origin: center center; }
+  .mono { font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace; }
+  .stage-title { position: absolute; left: 80px; top: 36px; right: 540px; font-size: 36px; font-weight: 700; color: var(--title-blue); letter-spacing: -0.01em; }
+  .stage-counter { position: absolute; right: 80px; top: 42px; font-size: 14px; color: var(--counter-gray); }
+  .subtitle { position: absolute; left: 80px; top: 850px; right: 460px; font-style: italic; color: var(--sub-gray); font-size: 24px; line-height: 1.35; }
+  .controls { position: absolute; left: 80px; top: 1020px; display: flex; gap: 14px; align-items: center; }
+  .controls button { font: inherit; font-size: 14px; padding: 8px 18px; background: #fff; border: 1px solid #cbd5e0; color: #2d3748; border-radius: 4px; cursor: pointer; }
+  .controls button:hover { background: #f7fafc; }
+  body.clean .controls, body.clean .stage-counter { display: none; }
+
+  .panel { position: absolute; box-sizing: border-box; }
+  .badge-util, .barrier, .isa-panel, .dp-block, .pipe-tag, .res-callout,
+  .asm-box, .kp-panel, .metrics-row, .chart-panel, .verify-badge { position: absolute; }
+  .scene { position: absolute; inset: 0; opacity: 0; pointer-events: none; transition: opacity 300ms ease; }
+  .scene.active { opacity: 1; pointer-events: auto; }
+  .scene.active .reveal { animation: revealIn 450ms cubic-bezier(0.2,0.7,0.3,1) both; }
+  .reveal { opacity: 0; }
+  @keyframes revealIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* Lane cells */
+  .lane-strip { position: absolute; display: flex; gap: 4px; }
+  .lane { box-sizing: border-box; border: 2px solid; display: flex; align-items: center; justify-content: center; font-size: 22px; font-weight: 500; position: relative; }
+  .lane.active { background: var(--orange-fill); border-color: var(--orange-stroke); color: #1a365d; }
+  .lane.wasted { background: repeating-linear-gradient(45deg, #edf2f7, #edf2f7 6px, #cbd5e0 6px, #cbd5e0 12px); border-color: #a0aec0; color: #4a5568; }
+  .lane.wasted .wasted-stamp { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-style: italic; font-size: 22px; color: #4a5568; transform: rotate(-15deg); pointer-events: none; }
+  .lane-label { font-size: 16px; color: #4a5568; text-align: center; }
+  .lane-label.bold { font-weight: 700; color: var(--orange-stroke); }
+
+  .codeblock { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 16px; background: #f7fafc; border: 1px solid #cbd5e0; border-radius: 6px; padding: 16px 20px; color: #2d3748; box-sizing: border-box; white-space: pre; line-height: 1.55; }
+  .codeblock .line { display: block; opacity: 0; transform: translateY(4px); }
+  .scene.active .codeblock .line { animation: lineIn 250ms cubic-bezier(0.2,0.7,0.3,1) both; }
+  @keyframes lineIn { to { opacity: 1; transform: translateY(0); } }
+  .codeblock .cmt { color: #718096; font-style: italic; }
+  .codeblock .metric { font-weight: 700; color: #1a365d; }
+
+  /* Stage 1 utilization badge */
+  .badge-util { background: var(--highlight-fill); border: 2px solid var(--highlight-stroke); border-radius: 8px; padding: 12px 20px; box-sizing: border-box; }
+  .badge-util .t1 { font-size: 20px; font-weight: 700; color: var(--title-blue); }
+  .badge-util .t2 { font-size: 14px; font-style: italic; color: var(--sub-gray); margin-top: 6px; }
+
+  /* Stage 2 barrier */
+  .barrier { background: var(--red-fill); border: 4px solid var(--red-stroke); border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 700; color: var(--red-stroke); letter-spacing: 0.04em; box-sizing: border-box; }
+  .barrier-sub { font-style: italic; color: var(--sub-gray); font-size: 16px; }
+
+  /* Stage 2 right panel */
+  .isa-panel { background: var(--highlight-fill); border: 2px solid var(--highlight-stroke); border-radius: 6px; padding: 14px 16px; box-sizing: border-box; }
+  .isa-panel h4 { font-size: 14px; font-weight: 700; margin: 0 0 6px; color: var(--title-blue); }
+  .isa-panel .body { font-size: 13px; font-family: ui-monospace, Menlo, monospace; line-height: 1.55; color: #2d3748; white-space: pre; }
+  .isa-panel hr { border: none; border-top: 1px solid #c4d4ec; margin: 10px 0; }
+
+  /* Stage 3 datapath */
+  .dp-block { background: var(--panel-fill); border: 2px solid var(--panel-stroke); border-radius: 8px; box-sizing: border-box; padding: 14px 14px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+  .dp-block.mux { background: var(--green-fill); border: 3px solid var(--green-stroke); box-shadow: 0 0 18px rgba(47,133,90,0.32); }
+  .dp-block h3 { font-size: 22px; margin: 0; font-weight: 700; color: var(--title-blue); }
+  .pipe-tag { background: var(--pipe-fill); border: 1px solid var(--pipe-stroke); border-radius: 4px; padding: 10px 14px; box-sizing: border-box; }
+  .pipe-tag .l1 { font-family: ui-monospace, Menlo, monospace; font-weight: 700; font-size: 14px; color: #1a365d; }
+  .pipe-tag .l2 { font-family: ui-monospace, Menlo, monospace; font-size: 13px; color: #2d3748; margin-top: 4px; letter-spacing: 0.01em; }
+  .pipe-tag .ex1 { color: var(--orange-stroke); font-weight: 700; }
+
+  .arrow-h { position: absolute; height: 3px; background: #2d3748; }
+  .arrow-h::after { content: ""; position: absolute; right: -1px; top: -7px; border-left: 12px solid #2d3748; border-top: 8px solid transparent; border-bottom: 8px solid transparent; }
+
+  .mini-reg { display: flex; gap: 2px; }
+  .mini-reg .mc { width: 38px; height: 32px; display: flex; align-items: center; justify-content: center; font-family: ui-monospace, monospace; font-size: 14px; font-weight: 600; border: 1.5px solid; box-sizing: border-box; border-radius: 2px; }
+
+  /* Mux pictogram trapezoid */
+  .mux-pict { width: 200px; height: 150px; position: relative; }
+  .mux-pict svg { display: block; }
+  .mux-pict .lanesel-val { position: absolute; left: 50%; top: -2px; transform: translateX(-50%); font-family: ui-monospace, monospace; font-weight: 700; font-size: 16px; color: var(--title-blue); background: #fff; padding: 0 4px; }
+  .mux-pict .lanesel-label { position: absolute; left: calc(50% + 14px); top: 5px; font-style: italic; font-size: 13px; color: #4a5568; white-space: nowrap; }
+
+  .alu-row { display: flex; gap: 4px; }
+  .alu-row .alu { width: 38px; height: 40px; border-radius: 6px; background: #edf2f7; border: 1.5px solid #4a5568; display: flex; align-items: center; justify-content: center; font-family: ui-monospace, monospace; font-size: 18px; color: #2d3748; }
+
+  .res-callout { background: var(--highlight-fill); border: 2px solid var(--highlight-stroke); border-radius: 8px; padding: 14px 18px; font-family: ui-monospace, monospace; font-size: 14px; color: #1a365d; line-height: 1.6; box-sizing: border-box; }
+
+  /* Stage 4 encoding */
+  .enc-row { display: flex; gap: 0; align-items: stretch; }
+  .enc-cell { box-sizing: border-box; border: 1px solid #4a5568; border-right: none; padding: 8px 6px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
+  .enc-cell:last-child { border-right: 1px solid #4a5568; }
+  .enc-cell .pos { font-family: ui-monospace, monospace; font-size: 11px; color: #718096; }
+  .enc-cell .name { font-family: ui-monospace, monospace; font-weight: 700; font-size: 14px; color: #2d3748; }
+  .enc-cell .val { font-family: ui-monospace, monospace; font-size: 18px; color: #1a365d; }
+  .enc-cell.even { background: #f7fafc; }
+  .enc-cell.odd { background: #edf2f7; }
+
+  .asm-box { background: var(--green-fill); border: 2px solid var(--green-stroke); border-radius: 8px; display: flex; align-items: center; justify-content: center; box-sizing: border-box; }
+  .asm-box span { font-family: ui-monospace, monospace; font-weight: 700; font-size: 22px; color: var(--title-blue); }
+
+  .enc-examples { width: 100%; border-collapse: collapse; }
+  .enc-examples th, .enc-examples td { border: 1px solid #cbd5e0; padding: 10px 14px; text-align: left; font-family: ui-monospace, monospace; font-size: 16px; color: #2d3748; }
+  .enc-examples th { background: #f7fafc; font-weight: 700; font-size: 14px; }
+
+  /* Stage 5 panels */
+  .kp-panel { border-radius: 10px; padding: 18px 20px; box-sizing: border-box; }
+  .kp-panel.before { background: #fef5f5; border: 2px solid #fc8181; }
+  .kp-panel.after { background: #f0fff4; border: 2px solid #68d391; }
+  .kp-panel h3 { margin: 0 0 12px; font-size: 18px; font-weight: 700; }
+  .kp-panel.before h3 { color: var(--red-stroke); }
+  .kp-panel.after h3 { color: var(--green-stroke); }
+  .kp-code { font-family: ui-monospace, monospace; font-size: 14px; background: #fff; border: 1px solid rgba(0,0,0,0.06); border-radius: 6px; padding: 14px 14px; white-space: pre; line-height: 1.55; }
+  .kp-bullets { margin-top: 14px; font-family: ui-monospace, monospace; font-size: 14px; font-style: italic; color: #4a5568; line-height: 1.7; }
+  .bcast-line { background: var(--green-fill); border-radius: 3px; padding: 0 4px; }
+
+  .metrics-row { background: var(--highlight-fill); border: 2px solid var(--highlight-stroke); border-radius: 10px; padding: 14px 24px; box-sizing: border-box; display: flex; justify-content: space-around; align-items: center; }
+  .metric-stat { text-align: center; }
+  .metric-stat .num { font-size: 32px; font-weight: 700; color: var(--highlight-stroke); font-variant-numeric: tabular-nums; }
+  .metric-stat .lbl { font-size: 14px; color: var(--sub-gray); margin-top: 4px; }
+
+  /* Stage 6 chart */
+  .chart-panel { background: #fff; border: 1px solid #e2e8f0; border-radius: 8px; box-sizing: border-box; padding: 30px; position: relative; }
+  .bar { position: absolute; bottom: 50px; box-sizing: border-box; }
+  .bar.before { left: 130px; width: 120px; background: var(--bar-before-fill); border: 2px solid var(--bar-before-stroke); }
+  .bar.after { left: 510px; width: 120px; background: var(--bar-after-fill); border: 2px solid var(--bar-after-stroke); }
+  .bar-axis { position: absolute; left: 80px; right: 30px; bottom: 50px; height: 1px; background: #cbd5e0; }
+  .bar-label { position: absolute; font-weight: 700; font-size: 16px; text-align: center; bottom: 24px; width: 200px; color: #2d3748; }
+
+  .speedup-callout { font-size: 56px; font-weight: 700; color: var(--highlight-stroke); font-variant-numeric: tabular-nums; }
+
+  .layer-table { width: 100%; border-collapse: collapse; background: #f7fafc; }
+  .layer-table th, .layer-table td { border: 1px solid #cbd5e0; padding: 10px 16px; }
+  .layer-table th { font-size: 14px; font-weight: 700; background: #edf2f7; color: #2d3748; text-align: left; }
+  .layer-table td { font-family: ui-monospace, monospace; font-size: 16px; }
+  .layer-table td:first-child { font-family: -apple-system, sans-serif; font-weight: 600; font-size: 15px; color: #2d3748; }
+  .layer-table .hl { background: #fefce8; font-weight: 700; }
+
+  .verify-badge { background: var(--highlight-fill); border: 1px solid var(--highlight-stroke); border-radius: 6px; padding: 10px 18px; text-align: center; box-sizing: border-box; }
+  .verify-badge .l1 { font-family: ui-monospace, monospace; font-size: 14px; color: var(--title-blue); }
+  .verify-badge .l2 { font-style: italic; font-size: 13px; color: var(--sub-gray); margin-top: 4px; }
+
+  .float-label { font-style: italic; font-size: 14px; color: #4a5568; }
+
+  /* generic small */
+  .reg-strip-label { position: absolute; font-size: 16px; font-style: italic; color: #4a5568; }
+
+  /* Stage 3 callout for arrow above */
+  .arrow-anno { position: absolute; font-family: ui-monospace, monospace; font-size: 14px; color: #2d3748; }
+</style>
+</head>
+<body>
+<div id="stageWrap">
+  <div id="stage">
+
+    <!-- ===================== STAGE 1 ===================== -->
+    <section class="scene" data-i="0">
+      <div class="stage-title reveal" style="animation-delay:0ms">The waste — scalar mode</div>
+      <div class="stage-counter reveal" style="animation-delay:0ms">Stage 1 of 6</div>
+
+      <!-- Register strip R3 -->
+      <div class="reg-strip-label reveal" style="left:180px; top:212px; animation-delay:120ms;">R3 (input register, BF16 replicated)</div>
+      <div class="lane-strip reveal" style="left:180px; top:240px; width:1100px; height:130px; animation-delay:240ms;">
+        <div class="lane active mono" style="width:272px; height:130px; animation-delay:240ms;">x[i]</div>
+        <div class="lane wasted mono" style="width:272px; height:130px;"><div class="wasted-stamp">wasted</div></div>
+        <div class="lane wasted mono" style="width:272px; height:130px;"><div class="wasted-stamp">wasted</div></div>
+        <div class="lane wasted mono" style="width:272px; height:130px;"><div class="wasted-stamp">wasted</div></div>
+      </div>
+
+      <!-- Lane labels -->
+      <div class="reveal" style="position:absolute; left:180px; top:380px; width:1100px; display:flex; gap:4px; animation-delay:780ms;">
+        <div class="lane-label bold" style="width:272px;">Lane 0</div>
+        <div class="lane-label" style="width:272px;">Lane 1</div>
+        <div class="lane-label" style="width:272px;">Lane 2</div>
+        <div class="lane-label" style="width:272px;">Lane 3</div>
+      </div>
+
+      <!-- Utilization badge -->
+      <div class="badge-util reveal" style="position:absolute; left:540px; top:440px; width:380px; height:90px; animation-delay:960ms;">
+        <div class="t1">25 % SIMD utilization</div>
+        <div class="t2 mono">data layout: R = {v, v, v, v} — BF16 replicated</div>
+      </div>
+
+      <!-- Scalar inner-loop -->
+      <div class="codeblock reveal" style="position:absolute; left:80px; top:560px; width:1300px; height:200px; animation-delay:1200ms;"><span class="line" style="animation-delay:1300ms;">LD   R3, 0(R9)        <span class="cmt">; load input,  all 4 lanes get {v,v,v,v}</span></span><span class="line" style="animation-delay:1500ms;">LD   R2, 0(R8)        <span class="cmt">; load weight, all 4 lanes get {w,w,w,w}</span></span><span class="line" style="animation-delay:1700ms;">FMA  R1, R2, R3, R1   <span class="cmt">; all 4 lanes compute the SAME thing</span></span><span class="line cmt" style="animation-delay:1900ms;">; ...</span><span class="line metric" style="animation-delay:2100ms;">; 14 cycles → 2 neurons → 7 cy/neuron</span></div>
+
+      <div class="subtitle reveal" style="animation-delay:600ms;">Base ISA has no cross-lane ops · scalar mode = 25 % SIMD utilization</div>
+    </section>
+
+    <!-- ===================== STAGE 2 ===================== -->
+    <section class="scene" data-i="1">
+      <div class="stage-title reveal">The inter-layer barrier</div>
+      <div class="stage-counter reveal">Stage 2 of 6</div>
+
+      <!-- Top strip -->
+      <div class="reg-strip-label reveal" style="left:180px; top:174px; animation-delay:120ms;">Layer N output, R1 = {h3, h2, h1, h0}</div>
+      <div class="lane-strip reveal" style="left:180px; top:200px; width:1100px; height:130px; animation-delay:240ms;">
+        <div class="lane mono" style="width:272px; height:130px; background:var(--blue-fill); border-color:var(--blue-stroke);">h3</div>
+        <div class="lane mono" style="width:272px; height:130px; background:var(--green-fill); border-color:var(--green-stroke);">h2</div>
+        <div class="lane mono" style="width:272px; height:130px; background:var(--yellow-fill); border-color:var(--yellow-stroke);">h1</div>
+        <div class="lane mono" style="width:272px; height:130px; background:var(--pink-fill); border-color:var(--pink-stroke);">h0</div>
+      </div>
+
+      <!-- Barrier -->
+      <div class="barrier reveal" style="left:180px; top:380px; width:1100px; height:60px; animation-delay:900ms;">NO INSTRUCTION</div>
+      <div class="reveal" style="position:absolute; left:180px; top:452px; width:1100px; text-align:center; animation-delay:1050ms;">
+        <span class="barrier-sub">cross-lane replicate unavailable in the base ISA</span>
+      </div>
+
+      <!-- Bottom strip -->
+      <div class="lane-strip reveal" style="left:180px; top:510px; width:1100px; height:130px; animation-delay:1300ms;">
+        <div class="lane mono" style="width:272px; height:130px; background:var(--blue-fill); border-color:var(--blue-stroke);">h0</div>
+        <div class="lane mono" style="width:272px; height:130px; background:var(--blue-fill); border-color:var(--blue-stroke);">h0</div>
+        <div class="lane mono" style="width:272px; height:130px; background:var(--blue-fill); border-color:var(--blue-stroke);">h0</div>
+        <div class="lane mono" style="width:272px; height:130px; background:var(--blue-fill); border-color:var(--blue-stroke);">h0</div>
+      </div>
+      <div class="reg-strip-label reveal" style="left:180px; top:650px; animation-delay:1500ms;">Layer N+1 needs R3 = {h0, h0, h0, h0}</div>
+
+      <!-- Impossible curved arrow + X -->
+      <svg class="reveal" style="position:absolute; left:1110px; top:325px; width:200px; height:90px; opacity:0.5; animation-delay:1700ms;" viewBox="0 0 200 90">
+        <path d="M 50 5 C 80 30, 120 30, 150 70" stroke="#a0aec0" stroke-width="2" fill="none" stroke-dasharray="6 5"/>
+        <text x="100" y="55" font-family="monospace" font-size="28" font-weight="700" fill="#c53030" text-anchor="middle">✕</text>
+      </svg>
+
+      <!-- Right enumeration callout -->
+      <div class="isa-panel reveal" style="position:absolute; left:1320px; top:200px; width:140px; height:440px; animation-delay:1500ms;">
+        <h4>Base ISA can:</h4>
+        <div class="body">MOVI Rd, #imm
+→ all 4 lanes
+  = imm
+(broadcasts a
+ CONSTANT,
+ not a
+ register
+ value)</div>
+        <hr/>
+        <h4>Base ISA cannot:</h4>
+        <div class="body">broadcast from
+  register
+horizontal sum
+lane shuffle</div>
+      </div>
+
+      <div class="subtitle reveal" style="animation-delay:600ms;">Layer N output ≠ Layer N+1 input layout · MOVI only broadcasts a constant, not a register</div>
+    </section>
+
+    <!-- ===================== STAGE 3 ===================== -->
+    <section class="scene" data-i="2">
+      <div class="stage-title reveal">The hardware fix — a 4:1 lane mux in EX1</div>
+      <div class="stage-counter reveal">Stage 3 of 6</div>
+
+      <!-- Pipeline tag -->
+      <div class="pipe-tag reveal" style="position:absolute; left:80px; top:120px; width:320px; animation-delay:120ms;">
+        <div class="l1">GPU pipeline stage</div>
+        <div class="l2">IF → ID → <span class="ex1">EX1</span> → EX2 → EX3 → WB</div>
+      </div>
+
+      <!-- Block A: Register File -->
+      <div class="dp-block reveal" style="left:80px; top:280px; width:200px; height:200px; animation-delay:300ms;">
+        <h3>Register file</h3>
+        <div class="mono" style="font-size:14px; color:#4a5568;">R1 = {h3, h2, h1, h0}</div>
+        <div class="mini-reg">
+          <div class="mc" style="background:var(--blue-fill); border-color:var(--blue-stroke);">h3</div>
+          <div class="mc" style="background:var(--green-fill); border-color:var(--green-stroke);">h2</div>
+          <div class="mc" style="background:var(--yellow-fill); border-color:var(--yellow-stroke);">h1</div>
+          <div class="mc" style="background:var(--pink-fill); border-color:var(--pink-stroke);">h0</div>
+        </div>
+        <div class="mono" style="font-size:12px; color:#718096; margin-top:6px;">(4 lanes, 4 hidden units)</div>
+      </div>
+
+      <!-- Arrow A -> B -->
+      <div class="arrow-h reveal" style="left:300px; top:378px; width:320px; animation-delay:520ms;"></div>
+
+      <!-- Block B: Mux (the addition) -->
+      <div class="dp-block mux reveal" style="left:640px; top:220px; width:260px; height:320px; animation-delay:600ms;">
+        <h3>4:1 lane mux</h3>
+        <div class="mux-pict">
+          <div class="lanesel-label">lane select</div>
+          <div class="lanesel-val" id="muxLaneVal">0</div>
+          <svg width="200" height="150" viewBox="0 0 200 150">
+            <!-- Vertical lane-select wire -->
+            <line x1="100" y1="0" x2="100" y2="20" stroke="#4a5568" stroke-width="1.5"/>
+            <line x1="100" y1="20" x2="100" y2="30" stroke="#4a5568" stroke-width="1.5"/>
+            <!-- Trapezoid: wider left, narrower right -->
+            <polygon points="20,15 160,55 160,105 20,145" fill="#ffffff" stroke="#2f855a" stroke-width="2"/>
+            <!-- 4 input lines on left -->
+            <line x1="0" y1="35" x2="20" y2="35" stroke="#4a5568" stroke-width="1.5" id="muxL0"/>
+            <line x1="0" y1="65" x2="20" y2="65" stroke="#4a5568" stroke-width="1.5" id="muxL1"/>
+            <line x1="0" y1="95" x2="20" y2="95" stroke="#4a5568" stroke-width="1.5" id="muxL2"/>
+            <line x1="0" y1="125" x2="20" y2="125" stroke="#4a5568" stroke-width="1.5" id="muxL3"/>
+            <text x="44" y="40" font-family="monospace" font-size="11" fill="#2d3748">lane 0</text>
+            <text x="44" y="70" font-family="monospace" font-size="11" fill="#2d3748">lane 1</text>
+            <text x="44" y="100" font-family="monospace" font-size="11" fill="#2d3748">lane 2</text>
+            <text x="44" y="130" font-family="monospace" font-size="11" fill="#2d3748">lane 3</text>
+            <!-- Output line -->
+            <line x1="160" y1="80" x2="200" y2="80" stroke="#4a5568" stroke-width="2"/>
+          </svg>
+        </div>
+        <div class="mono" style="font-style:italic; font-size:13px; color:#4a5568;">ALU_BCAST = 4'd6</div>
+      </div>
+
+      <!-- Arrow B -> C -->
+      <div class="arrow-h reveal" style="left:920px; top:378px; width:320px; animation-delay:720ms;"></div>
+      <div class="arrow-anno reveal" style="left:920px; top:348px; width:320px; text-align:center; font-size:13px; animation-delay:780ms;">{Rs[lane], Rs[lane], Rs[lane], Rs[lane]}</div>
+
+      <!-- Block C: 4 SIMD ALUs -->
+      <div class="dp-block reveal" style="left:1260px; top:280px; width:200px; height:200px; animation-delay:880ms;">
+        <h3>4 SIMD ALUs</h3>
+        <div class="alu-row">
+          <div class="alu">Σ</div><div class="alu">Σ</div><div class="alu">Σ</div><div class="alu">Σ</div>
+        </div>
+        <div class="mono" style="font-size:15px;">result = {h0, h0, h0, h0}</div>
+        <div class="mono" style="font-size:12px; color:#718096;">(when lane select = 0)</div>
+      </div>
+
+      <!-- Resource callout -->
+      <div class="res-callout reveal" style="position:absolute; left:580px; top:580px; width:380px; animation-delay:1100ms;">placement: EX1 stage (before per-lane ALU dispatch)
+cost: +65 LUTs · ~0.1 % of XC2VP50
+flip-flops added: 0   (purely combinational)</div>
+
+      <div class="reveal" style="position:absolute; left:120px; top:720px; width:1340px; text-align:center; font-style:italic; font-size:14px; color:#718096; animation-delay:1300ms;">the only correct location — per-lane ALUs cannot see other lanes' data</div>
+
+      <div class="subtitle reveal" style="animation-delay:600ms;">Combinational 4:1 lane mux in EX1 · +65 LUTs (~0.1 % of XC2VP50) · 0 new flops</div>
+    </section>
+
+    <!-- ===================== STAGE 4 ===================== -->
+    <section class="scene" data-i="3">
+      <div class="stage-title reveal">The ISA fix — opcode 5'b11010</div>
+      <div class="stage-counter reveal">Stage 4 of 6</div>
+
+      <!-- Encoding row -->
+      <div class="reveal" style="position:absolute; left:180px; top:160px; width:1100px; height:160px; animation-delay:120ms;">
+        <div class="enc-row" style="height:100%;">
+          <div class="enc-cell even" style="flex:5; animation-delay:120ms;"><div class="pos">[31:27]</div><div class="name">opcode</div><div class="val">11010</div></div>
+          <div class="enc-cell odd"  style="flex:4;"><div class="pos">[26:23]</div><div class="name">rd</div><div class="val">dest</div></div>
+          <div class="enc-cell even" style="flex:4;"><div class="pos">[22:19]</div><div class="name">rs1</div><div class="val">source</div></div>
+          <div class="enc-cell odd"  style="flex:4;"><div class="pos">[18:15]</div><div class="name">rs2</div><div class="val">0000</div></div>
+          <div class="enc-cell even" style="flex:3;"><div class="pos">[14:12]</div><div class="name">dtype</div><div class="val">(unused)</div></div>
+          <div class="enc-cell odd"  style="flex:10;"><div class="pos">[11:2]</div><div class="name">unused</div><div class="val">(zero)</div></div>
+          <div class="enc-cell even" style="flex:2;"><div class="pos">[1:0]</div><div class="name">lane</div><div class="val">0..3</div></div>
+        </div>
+      </div>
+
+      <!-- Field callout arrows -->
+      <svg class="reveal" style="position:absolute; left:180px; top:330px; width:1100px; height:30px; animation-delay:400ms;" viewBox="0 0 1100 30">
+        <line x1="84"  y1="0"  x2="84"  y2="22" stroke="#4a5568" stroke-width="1.5"/>
+        <polygon points="80,0 88,0 84,-6" fill="#4a5568" transform="translate(0,6)"/>
+        <line x1="555" y1="0"  x2="555" y2="22" stroke="#4a5568" stroke-width="1.5"/>
+        <polygon points="551,0 559,0 555,-6" fill="#4a5568" transform="translate(0,6)"/>
+        <line x1="1067" y1="0" x2="1067" y2="22" stroke="#4a5568" stroke-width="1.5"/>
+        <polygon points="1063,0 1071,0 1067,-6" fill="#4a5568" transform="translate(0,6)"/>
+      </svg>
+      <div class="reveal" style="position:absolute; left:180px; top:368px; width:1100px; height:60px; animation-delay:500ms;">
+        <div style="position:absolute; left:0; top:0; width:280px; text-align:center; font-style:italic; font-size:13px; color:#4a5568;">new opcode allocated in unused<br/>5'b11010 slot</div>
+        <div style="position:absolute; left:410px; top:0; width:300px; text-align:center; font-style:italic; font-size:13px; color:#4a5568;">rs2 = 0 — hardwired to R0, avoids<br/>false hazard stalls</div>
+        <div style="position:absolute; right:0; top:0; width:280px; text-align:center; font-style:italic; font-size:13px; color:#4a5568;">lane select carried in func bits —<br/>2-bit immediate</div>
+      </div>
+
+      <!-- Assembly syntax -->
+      <div class="reveal" style="position:absolute; left:480px; top:436px; width:500px; text-align:center; animation-delay:760ms;">
+        <div style="font-style:italic; font-size:14px; color:#4a5568;">assembly syntax</div>
+      </div>
+      <div class="asm-box reveal" style="position:absolute; left:480px; top:460px; width:500px; height:80px; animation-delay:820ms;">
+        <span>BCAST Rd, Rs1, lane    (lane = 0..3)</span>
+      </div>
+
+      <!-- Right-side latency callout -->
+      <div class="res-callout reveal" style="position:absolute; left:1080px; top:460px; width:300px; height:80px; padding:12px 16px; animation-delay:880ms;">pipeline latency: 2 cycles (EX1 → EX2)
+<span style="font-style:italic; color:#4a5568; font-family:inherit;">same as MOV</span></div>
+
+      <!-- Example encodings table -->
+      <div class="reveal" style="position:absolute; left:240px; top:620px; width:980px; animation-delay:1000ms;">
+        <table class="enc-examples" style="width:100%;">
+          <thead>
+            <tr><th style="width:30%;">assembly</th><th style="width:35%;">hex encoding</th><th style="width:35%;">lane = ?</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>BCAST R3, R1, 0</td><td>0xD1880000</td><td>lane 0</td></tr>
+            <tr><td>BCAST R3, R1, 2</td><td>0xD1880002</td><td>lane 2</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="subtitle reveal" style="animation-delay:600ms;">Opcode 11010 · lane select in func bits · 2-cycle latency (same as MOV)</div>
+    </section>
+
+    <!-- ===================== STAGE 5 ===================== -->
+    <section class="scene" data-i="4">
+      <div class="stage-title reveal">The kernel — 2-neuron → 4-neuron parallel</div>
+      <div class="stage-counter reveal">Stage 5 of 6</div>
+
+      <!-- Left: before -->
+      <div class="kp-panel before reveal" style="position:absolute; left:80px; top:140px; width:640px; height:540px; animation-delay:120ms;">
+        <h3>before — scalar mode, 2-neuron interleave</h3>
+        <div class="kp-code"><span class="line" style="animation-delay:200ms;">loop:</span>
+<span class="line" style="animation-delay:320ms;">  LD   R2, 0(R8)        <span style="color:#718096;font-style:italic;">; weight neuron A</span></span>
+<span class="line" style="animation-delay:440ms;">  LD   R3, 0(R9)        <span style="color:#718096;font-style:italic;">; input  {x, x, x, x}</span></span>
+<span class="line" style="animation-delay:560ms;">  ADD  R9, R9, R7</span>
+<span class="line" style="animation-delay:680ms;">  LD   R4, S(R8)        <span style="color:#718096;font-style:italic;">; weight neuron B (stride S)</span></span>
+<span class="line" style="animation-delay:800ms;">  FMA  R1, R2, R3, R1   <span style="color:#718096;font-style:italic;">; neuron A</span></span>
+<span class="line" style="animation-delay:920ms;">  FMA  R5, R4, R3, R5   <span style="color:#718096;font-style:italic;">; neuron B</span></span>
+<span class="line" style="animation-delay:1040ms;">  ADD  R8, R8, R7</span>
+<span class="line" style="animation-delay:1160ms;">  BLT  R9, R12, loop</span></div>
+        <div class="kp-bullets">
+          <div>• 14 cycles per iteration · 2 neurons · 7.0 cy / neuron</div>
+          <div>• SIMD utilization: 25 %</div>
+          <div>• DMEM layout: every word = {v, v, v, v} — 4× memory waste</div>
+        </div>
+      </div>
+
+      <!-- Center separator -->
+      <div class="reveal" style="position:absolute; left:720px; top:380px; width:40px; height:60px; text-align:center; animation-delay:1300ms;">
+        <div style="font-size:36px; font-weight:700; color:var(--highlight-stroke); line-height:1;">→</div>
+        <div style="font-style:italic; font-size:13px; color:#718096; margin-top:2px;">kernel<br/>rewrite</div>
+      </div>
+
+      <!-- Right: after -->
+      <div class="kp-panel after reveal" style="position:absolute; left:760px; top:140px; width:640px; height:540px; animation-delay:720ms;">
+        <h3>after — BCAST, 4-neuron parallel</h3>
+        <div class="kp-code"><span class="line" style="animation-delay:780ms;">loop:</span>
+<span class="line" style="animation-delay:900ms;">  LD    R3, 0(R9)        <span style="color:#718096;font-style:italic;">; scalar input (lane 0 only)</span></span>
+<span class="line" style="animation-delay:1020ms;">  LD    R2, 0(R8)        <span style="color:#718096;font-style:italic;">; packed weights {w3, w2, w1, w0}</span></span>
+<span class="line" style="animation-delay:1140ms;">  ADD   R9, R9, R7</span>
+<span class="line" style="animation-delay:1260ms;">  ADD   R8, R8, R7</span>
+<span class="line" style="animation-delay:1380ms;"><span class="bcast-line">  BCAST R3, R3, 0        ; broadcast lane 0 → all 4 lanes</span></span>
+<span class="line" style="animation-delay:1500ms;">  FMA   R1, R2, R3, R1   <span style="color:#718096;font-style:italic;">; 4 neurons in parallel</span></span>
+<span class="line" style="animation-delay:1620ms;">  BLT   R9, R12, loop</span></div>
+        <div class="kp-bullets">
+          <div>• 14 cycles per iteration · 4 neurons · 3.5 cy / neuron</div>
+          <div>• SIMD utilization: 100 %</div>
+          <div>• DMEM layout: weights packed 4-per-word — 3.5× memory reduction</div>
+        </div>
+      </div>
+
+      <!-- Metrics row -->
+      <div class="metrics-row reveal" style="position:absolute; left:80px; top:720px; width:1320px; height:80px; animation-delay:1800ms;">
+        <div class="metric-stat reveal" style="animation-delay:1900ms;">
+          <div class="num">2 → 4</div>
+          <div class="lbl">neurons per loop iteration</div>
+        </div>
+        <div class="metric-stat reveal" style="animation-delay:2100ms;">
+          <div class="num">7.0 → 3.5</div>
+          <div class="lbl">cycles per neuron (2× improvement)</div>
+        </div>
+        <div class="metric-stat reveal" style="animation-delay:2300ms;">
+          <div class="num">25 % → 100 %</div>
+          <div class="lbl">SIMD utilization</div>
+        </div>
+      </div>
+
+      <div class="subtitle reveal" style="animation-delay:600ms;">Pack 4 weights per word · same 14 cycles, 2× the work · 25 % → 100 % SIMD</div>
+    </section>
+
+    <!-- ===================== STAGE 6 ===================== -->
+    <section class="scene" data-i="5">
+      <div class="stage-title reveal">The result — 2402 → 732 cycles on silicon</div>
+      <div class="stage-counter reveal">Stage 6 of 6</div>
+
+      <!-- Bar chart -->
+      <div class="chart-panel reveal" style="position:absolute; left:360px; top:140px; width:740px; height:400px; animation-delay:120ms;">
+        <div class="bar-axis"></div>
+        <!-- Bars (heights animated via inline transition) -->
+        <div class="bar before" id="barBefore" style="height:0; transition: height 1.2s cubic-bezier(0.3,0.0,0.4,1);"></div>
+        <div class="bar after"  id="barAfter"  style="height:0; transition: height 1.2s cubic-bezier(0.3,0.0,0.4,1);"></div>
+        <!-- Value labels -->
+        <div id="valBefore" style="position:absolute; left:130px; width:120px; bottom:0; text-align:center; font-weight:700; font-size:38px; color:var(--bar-before-stroke); font-variant-numeric:tabular-nums; transition: bottom 1.2s cubic-bezier(0.3,0.0,0.4,1);">0</div>
+        <div id="valAfter"  style="position:absolute; left:510px; width:120px; bottom:0; text-align:center; font-weight:700; font-size:38px; color:var(--bar-after-stroke); font-variant-numeric:tabular-nums; transition: bottom 1.2s cubic-bezier(0.3,0.0,0.4,1);">0</div>
+        <!-- Axis labels -->
+        <div class="bar-label" style="left:90px;">before — scalar mode</div>
+        <div class="bar-label" style="left:470px;">after — with BCAST</div>
+
+        <!-- Speedup arrow + label -->
+        <svg id="speedArrow" style="position:absolute; left:0; top:0; width:740px; height:400px; pointer-events:none; opacity:0; transition: opacity 600ms ease;" viewBox="0 0 740 400">
+          <path d="M 190 70 C 280 30, 430 30, 530 250" stroke="#2c5282" stroke-width="3" fill="none" stroke-dasharray="800" stroke-dashoffset="800" id="speedPath"/>
+          <polygon points="530,262 518,244 542,244" fill="#2c5282"/>
+        </svg>
+        <div id="speedLabel" style="position:absolute; left:300px; top:50px; width:140px; text-align:center; font-size:56px; font-weight:700; color:var(--highlight-stroke); font-variant-numeric:tabular-nums; opacity:0; transform: scale(0.85); transition: opacity 500ms ease, transform 500ms cubic-bezier(0.2,0.7,0.3,1); text-shadow: 0 0 18px rgba(44,82,130,0.25);">3.28×</div>
+      </div>
+
+      <!-- Per-layer breakdown table -->
+      <div class="reveal" style="position:absolute; left:200px; top:580px; width:1060px; animation-delay:2000ms;">
+        <table class="layer-table">
+          <thead>
+            <tr>
+              <th style="width:20%;"></th>
+              <th>Layer 1 (11→16)</th>
+              <th>Layer 2 (16→8)</th>
+              <th class="hl">Layer 3 (8→2)</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>scalar mode</td>
+              <td>1328 cy</td>
+              <td>944 cy</td>
+              <td class="hl"><strong>124 cy</strong></td>
+              <td>2402 cy</td>
+            </tr>
+            <tr>
+              <td>with BCAST</td>
+              <td>664 cy</td>
+              <td>646 cy</td>
+              <td class="hl"><strong>124 cy</strong></td>
+              <td>732 cy</td>
+            </tr>
+          </tbody>
+        </table>
+        <div style="font-style:italic; font-size:12px; color:#718096; margin-top:6px; text-align:right;">Layer 3 doesn't speed up — only 2 output neurons, can't fill 4 lanes.</div>
+      </div>
+
+      <!-- Verification badge -->
+      <div class="verify-badge reveal" style="position:absolute; left:240px; top:760px; width:980px; animation-delay:2400ms;">
+        <div class="l1">hardware-verified · measured via the GPU cycle-counter register exposed at offset 0x30</div>
+        <div class="l2">five consecutive silicon runs · stable at 732 cycles · no jitter</div>
+      </div>
+
+      <div class="subtitle reveal" style="animation-delay:600ms;">2402 → 732 cycles = 3.28× speedup · hardware-verified · 5 stable silicon runs</div>
+    </section>
+
+    <!-- Controls -->
+    <div class="controls">
+      <button id="prevBtn">‹ Previous</button>
+      <button id="playBtn">▶ Play</button>
+      <button id="nextBtn">Next ›</button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // ============ Scaling ============
+  function fit() {
+    const s = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+    document.getElementById('stage').style.transform = 'translate(-50%, -50%) scale(' + s + ')';
+  }
+  window.addEventListener('resize', fit);
+  fit();
+
+  // ============ Clean mode ============
+  const params = new URLSearchParams(location.search);
+  if (params.get('clean') === '1') document.body.classList.add('clean');
+
+  // ============ Stage durations ============
+  const defaults = [22000, 24000, 26000, 24000, 26000, 22000];
+  const durations = defaults.map((d, i) => {
+    const v = parseInt(params.get('s' + (i + 1)) || '', 10);
+    return Number.isFinite(v) && v > 0 ? v : d;
+  });
+
+  const scenes = document.querySelectorAll('.scene');
+  const total = scenes.length;
+  let current = 0;
+  let playing = false;
+  let timer = null;
+
+  function showScene(idx, opts = {}) {
+    current = ((idx % total) + total) % total;
+    scenes.forEach((s, i) => s.classList.toggle('active', i === current));
+    if (current === 5) prepareStage6();
+    if (current === 2) prepareStage3();
+    document.getElementById('playBtn').textContent = playing ? '❚❚ Pause' : '▶ Play';
+  }
+
+  function next() {
+    if (current < total - 1) showScene(current + 1);
+    else { stop(); }
+  }
+  function prev() { if (current > 0) showScene(current - 1); }
+
+  function play() {
+    if (current === total - 1) showScene(0);
+    playing = true;
+    document.getElementById('playBtn').textContent = '❚❚ Pause';
+    schedule();
+  }
+  function stop() {
+    playing = false;
+    clearTimeout(timer);
+    document.getElementById('playBtn').textContent = '▶ Play';
+  }
+  function schedule() {
+    clearTimeout(timer);
+    if (!playing) return;
+    timer = setTimeout(() => {
+      if (current < total - 1) { showScene(current + 1); schedule(); }
+      else { stop(); }
+    }, durations[current]);
+  }
+
+  document.getElementById('prevBtn').onclick = () => { stop(); prev(); };
+  document.getElementById('nextBtn').onclick = () => { stop(); next(); };
+  document.getElementById('playBtn').onclick = () => { if (playing) stop(); else play(); };
+
+  window.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowLeft') { stop(); prev(); }
+    else if (e.key === 'ArrowRight') { stop(); next(); }
+    else if (e.key === ' ') { e.preventDefault(); if (playing) stop(); else play(); }
+  });
+
+  // ============ Stage 3: mux lane select cycle ============
+  let muxInterval = null;
+  function prepareStage3() {
+    if (muxInterval) return;
+    let v = 0;
+    const el = document.getElementById('muxLaneVal');
+    const lanes = ['muxL0','muxL1','muxL2','muxL3'].map(id => document.getElementById(id));
+    function tick() {
+      el.textContent = v;
+      lanes.forEach((ln, i) => {
+        if (i === v) { ln.setAttribute('stroke', '#c05621'); ln.setAttribute('stroke-width', '3'); }
+        else { ln.setAttribute('stroke', '#4a5568'); ln.setAttribute('stroke-width', '1.5'); }
+      });
+      v = (v + 1) % 4;
+    }
+    tick();
+    muxInterval = setInterval(tick, 1200);
+  }
+
+  // ============ Stage 6: bars + count-up + arrow ============
+  let stage6Played = false;
+  function prepareStage6() {
+    if (stage6Played) return;
+    stage6Played = true;
+    const chartH = 320; // available bar height area (~350 - 30 padding)
+    const maxVal = 2500;
+    const beforeVal = 2402;
+    const afterVal = 732;
+    const beforeH = chartH * (beforeVal / maxVal);
+    const afterH = chartH * (afterVal / maxVal);
+
+    setTimeout(() => {
+      document.getElementById('barBefore').style.height = beforeH + 'px';
+      document.getElementById('barAfter').style.height = afterH + 'px';
+      document.getElementById('valBefore').style.bottom = (50 + beforeH + 6) + 'px';
+      document.getElementById('valAfter').style.bottom = (50 + afterH + 6) + 'px';
+      animateCount('valBefore', 0, beforeVal, 1200);
+      animateCount('valAfter', 0, afterVal, 1200);
+    }, 400);
+
+    setTimeout(() => {
+      const path = document.getElementById('speedPath');
+      document.getElementById('speedArrow').style.opacity = '1';
+      path.style.transition = 'stroke-dashoffset 700ms cubic-bezier(0.4,0,0.2,1)';
+      requestAnimationFrame(() => { path.style.strokeDashoffset = '0'; });
+    }, 1700);
+
+    setTimeout(() => {
+      const lbl = document.getElementById('speedLabel');
+      lbl.style.opacity = '1';
+      lbl.style.transform = 'scale(1)';
+    }, 2200);
+  }
+
+  function animateCount(id, from, to, duration) {
+    const el = document.getElementById(id);
+    const start = performance.now();
+    function step(t) {
+      const k = Math.min(1, (t - start) / duration);
+      const e = 1 - Math.pow(1 - k, 3); // ease-out cubic
+      const v = Math.round(from + (to - from) * e);
+      el.textContent = v;
+      if (k < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }
+
+  // ============ Init ============
+  showScene(0);
+</script>
+</body>
+</html>

@@ -1,0 +1,186 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2800" height="1650" viewBox="0 0 2800 1650" role="img" aria-labelledby="title desc">
+  <title id="title">Detailed ARM CPU Microarchitecture</title>
+  <desc id="desc">Quad-thread fine-grained multithreaded ARM-compatible processor with per-thread program counters and flags, a logical five-stage pipeline, three MEM address windows, and a logic analyzer.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#243447"/></marker>
+    <marker id="ctrlArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#72509b"/></marker>
+    <style>
+      .bg{fill:#fff}.outer{fill:#f8fafc;stroke:#334e68;stroke-width:2.5}.group{fill:#fff;stroke:#627d98;stroke-width:2}.pipe{fill:#eef1f4;stroke:#66717d;stroke-width:2}.compute{fill:#e8f5e9;stroke:#367a42;stroke-width:2}.memory{fill:#fff3d6;stroke:#a76b00;stroke-width:2}.control{fill:#f1e9fb;stroke:#72509b;stroke-width:2}.warn{fill:#fff0e6;stroke:#b45309;stroke-width:2}.title{font:700 36px 'Segoe UI',sans-serif;fill:#102a43}.subtitle{font:600 24px 'Segoe UI',sans-serif;fill:#243b53}.stage{font:700 21px 'Segoe UI',sans-serif;fill:#102a43;text-anchor:middle}.label{font:600 18px 'Segoe UI',sans-serif;fill:#102a43;text-anchor:middle}.small{font:16px 'Segoe UI',sans-serif;fill:#334e68;text-anchor:middle}.tiny{font:14px 'Segoe UI',sans-serif;fill:#486581;text-anchor:middle}.data{fill:none;stroke:#243447;stroke-width:3;marker-end:url(#arrow)}.bidir{fill:none;stroke:#243447;stroke-width:3;marker-start:url(#arrow);marker-end:url(#arrow)}.ctrl{fill:none;stroke:#72509b;stroke-width:2.5;stroke-dasharray:9 7;marker-end:url(#ctrlArrow)}.tap{fill:none;stroke:#486581;stroke-width:2}.edgeLabel{font:600 14px 'Segoe UI',sans-serif;fill:#243447;text-anchor:middle}.note{font:16px 'Segoe UI',sans-serif;fill:#5b3412;text-anchor:middle}
+    </style>
+  </defs>
+  <rect class="bg" width="2800" height="1650"/>
+  <text class="title" x="1400" y="52" text-anchor="middle">ARM CPU Microarchitecture — Current RTL</text>
+  <text class="small" x="1400" y="84">processor.v: quad-thread FGMT, ARM-compatible subset, 64-bit datapath</text>
+
+  <rect class="outer" x="55" y="125" width="2690" height="1390" rx="22"/>
+  <text class="subtitle" x="90" y="164">processor</text>
+
+  <rect class="control" x="85" y="255" width="190" height="150" rx="13"/>
+  <text class="stage" x="180" y="292">Scheduler</text>
+  <text class="small" x="180" y="322">2-bit thread_id</text>
+  <text class="small" x="180" y="348">0 → 1 → 2 → 3</text>
+  <text class="small" x="180" y="374">advance iff start_stop</text>
+
+  <rect class="group" x="315" y="205" width="390" height="310" rx="16"/>
+  <text class="stage" x="510" y="238">IF_stage</text>
+  <rect class="control" x="345" y="270" width="160" height="195" rx="12"/>
+  <text class="label" x="425" y="304">4 × PC[10:0]</text>
+  <text class="small" x="425" y="334">reset 000 / 200</text>
+  <text class="small" x="425" y="358">400 / 600</text>
+  <text class="small" x="425" y="387">{tid, offset[8:0]}</text>
+  <text class="small" x="425" y="414">+4, region wrap</text>
+  <text class="tiny" x="425" y="444">halt gates PC increment</text>
+  <rect class="memory" x="525" y="270" width="150" height="195" rx="12"/>
+  <text class="label" x="600" y="304">inst_mem</text>
+  <text class="small" x="600" y="334">512 × 32</text>
+  <text class="small" x="600" y="358">dual-port BRAM</text>
+  <text class="small" x="600" y="387">sync read</text>
+  <text class="tiny" x="600" y="416">A: CPU fetch</text>
+  <text class="tiny" x="600" y="440">B: wrapper/CPCI</text>
+
+  <rect class="pipe" x="745" y="255" width="175" height="210" rx="12"/>
+  <text class="stage" x="833" y="292">IF / ID</text>
+  <text class="small" x="833" y="324">ifid_reg</text>
+  <text class="small" x="833" y="354">instruction[31:0]</text>
+  <text class="small" x="833" y="380">PC+4[10:0]</text>
+  <text class="small" x="833" y="406">thread[1:0]</text>
+  <text class="small" x="833" y="432">pcidx[4:0]</text>
+
+  <rect class="group" x="960" y="205" width="390" height="310" rx="16"/>
+  <text class="stage" x="1155" y="238">ID</text>
+  <rect class="compute" x="990" y="270" width="170" height="195" rx="12"/>
+  <text class="label" x="1075" y="304">Decoder</text>
+  <text class="small" x="1075" y="334">condition check</text>
+  <text class="small" x="1075" y="358">DP / LDR / STR</text>
+  <text class="small" x="1075" y="382">B / BX / HALT</text>
+  <text class="small" x="1075" y="411">branch resolves here</text>
+  <text class="tiny" x="1075" y="440">immediate + controls</text>
+  <rect class="compute" x="1180" y="270" width="140" height="195" rx="12"/>
+  <text class="label" x="1250" y="304">Register file</text>
+  <text class="small" x="1250" y="334">64 × 64</text>
+  <text class="small" x="1250" y="358">{tid, reg[3:0]}</text>
+  <text class="small" x="1250" y="387">2 async reads</text>
+  <text class="small" x="1250" y="411">1 sync WB</text>
+
+  <rect class="pipe" x="1390" y="255" width="175" height="210" rx="12"/>
+  <text class="stage" x="1478" y="292">ID / EX</text>
+  <text class="small" x="1478" y="324">idex_reg</text>
+  <text class="small" x="1478" y="354">R1, R2, immediate</text>
+  <text class="small" x="1478" y="380">dst + controls</text>
+  <text class="small" x="1478" y="406">shift + ALU op</text>
+  <text class="small" x="1478" y="432">thread + pcidx</text>
+
+  <rect class="group" x="1605" y="205" width="390" height="310" rx="16"/>
+  <text class="stage" x="1800" y="238">EX_stage</text>
+  <rect class="compute" x="1635" y="270" width="150" height="195" rx="12"/>
+  <text class="label" x="1710" y="304">Barrel shifter</text>
+  <text class="small" x="1710" y="334">64-bit R2</text>
+  <text class="small" x="1710" y="358">LSL / LSR</text>
+  <text class="small" x="1710" y="382">ASR / ROR</text>
+  <text class="tiny" x="1710" y="411">or immediate mux</text>
+  <rect class="compute" x="1805" y="270" width="160" height="195" rx="12"/>
+  <text class="label" x="1885" y="304">alu64</text>
+  <text class="small" x="1885" y="334">addsub64</text>
+  <text class="small" x="1885" y="358">logic64</text>
+  <text class="small" x="1885" y="387">64-bit result</text>
+  <text class="small" x="1885" y="411">N Z C V</text>
+
+  <rect class="pipe" x="2035" y="255" width="180" height="210" rx="12"/>
+  <text class="stage" x="2125" y="292">EX / MEM</text>
+  <text class="small" x="2125" y="324">exmem_reg</text>
+  <text class="small" x="2125" y="354">ALU result</text>
+  <text class="small" x="2125" y="380">store data + NZCV</text>
+  <text class="small" x="2125" y="406">controls + dst</text>
+  <text class="small" x="2125" y="432">thread + pcidx</text>
+
+  <rect class="group" x="2255" y="195" width="315" height="330" rx="16"/>
+  <text class="stage" x="2413" y="230">MEM: data_mem</text>
+  <text class="small" x="2413" y="258">decode addr[7:0]</text>
+  <rect class="memory" x="2285" y="280" width="255" height="62" rx="10"/>
+  <text class="label" x="2413" y="307">0x00–0x7F internal DMEM</text>
+  <text class="tiny" x="2413" y="330">array is 256 × 64; CPU local half</text>
+  <rect class="memory" x="2285" y="354" width="255" height="62" rx="10"/>
+  <text class="label" x="2413" y="381">0x80–0xEF FIFO window</text>
+  <text class="tiny" x="2413" y="404">maps FIFO indices 0x00–0x6F</text>
+  <rect class="memory" x="2285" y="428" width="255" height="62" rx="10"/>
+  <text class="label" x="2413" y="455">0xF0–0xFF aliases</text>
+  <text class="tiny" x="2413" y="478">wrapper control/status slots</text>
+
+  <rect class="pipe" x="2605" y="255" width="110" height="210" rx="12"/>
+  <text class="stage" x="2660" y="292">WB</text>
+  <text class="small" x="2660" y="324">module WB</text>
+  <text class="small" x="2660" y="354">combinational</text>
+  <text class="small" x="2660" y="380">memory /</text>
+  <text class="small" x="2660" y="404">ALU mux</text>
+  <text class="tiny" x="2660" y="440">MEM/WB regs live</text>
+  <text class="tiny" x="2660" y="458">inside data_mem</text>
+
+  <path class="data" d="M275 330H315"/><path class="data" d="M705 360H745"/><path class="data" d="M920 360H960"/><path class="data" d="M1350 360H1390"/><path class="data" d="M1565 360H1605"/><path class="data" d="M1995 360H2035"/><path class="data" d="M2215 360H2255"/><path class="data" d="M2570 360H2605"/>
+
+  <rect class="control" x="970" y="610" width="180" height="145" rx="12"/>
+  <text class="label" x="1060" y="645">Four CPSRs</text>
+  <text class="small" x="1060" y="676">{N,Z,C,V}</text>
+  <text class="small" x="1060" y="704">selected by ID tid</text>
+  <text class="tiny" x="1060" y="731">updated from MEM tid</text>
+
+  <rect class="control" x="1180" y="610" width="180" height="145" rx="12"/>
+  <text class="label" x="1270" y="645">halted[3:0]</text>
+  <text class="small" x="1270" y="676">set in ID</text>
+  <text class="small" x="1270" y="704">all_halted = AND</text>
+  <text class="tiny" x="1270" y="731">freezes owning PC only</text>
+
+  <path class="ctrl" d="M2125 465V560H1060V610"/>
+  <text class="edgeLabel" x="1600" y="550">set_flags + NZCV + MEM thread</text>
+  <path class="ctrl" d="M1060 610V540H1075V465"/>
+  <path class="ctrl" d="M1075 270V175H425V270"/>
+  <text class="edgeLabel" x="730" y="164">ID branch target + branch thread; no flush</text>
+  <path class="ctrl" d="M1270 610V535H425V465"/>
+
+  <path class="data" d="M2660 465V565H1250V465"/>
+  <text class="edgeLabel" x="1970" y="586">writeback data + dst + thread</text>
+
+  <rect class="memory" x="2020" y="635" width="230" height="150" rx="12"/>
+  <text class="label" x="2135" y="671">logic_analyzer</text>
+  <text class="small" x="2135" y="702">2048 × 64 dual-port</text>
+  <text class="small" x="2135" y="728">circular WB / MEM trace</text>
+  <text class="tiny" x="2135" y="756">capture gated by start_stop</text>
+  <path class="ctrl" d="M2125 465V635"/><path class="ctrl" d="M2660 465V595H2200V635"/>
+
+  <rect class="control" x="80" y="890" width="300" height="180" rx="14"/>
+  <text class="label" x="230" y="928">lab8_wrapper / CPCI</text>
+  <text class="small" x="230" y="960">CPU IMEM-B: 9b / 32b</text>
+  <text class="small" x="230" y="987">CPU DMEM-B: 8b / 64b</text>
+  <text class="small" x="230" y="1014">LA read: 11b / 64b</text>
+  <text class="small" x="230" y="1041">CPU_CTRL + status</text>
+
+  <rect class="memory" x="1970" y="900" width="280" height="170" rx="14"/>
+  <text class="label" x="2110" y="937">FIFO proc interface</text>
+  <text class="small" x="2110" y="968">addr[7:0] / payload[63:0] / we</text>
+  <text class="small" x="2110" y="995">wrapper prepends ctrl=FF at index 0</text>
+  <text class="small" x="2110" y="1022">ctrl=00 at all other indices</text>
+  <text class="tiny" x="2110" y="1048">owner only when mode 1 + running</text>
+
+  <rect class="control" x="2290" y="900" width="280" height="170" rx="14"/>
+  <text class="label" x="2430" y="937">Wrapper alias mux</text>
+  <text class="small" x="2430" y="968">sel[3:0] / data[63:0] / we</text>
+  <text class="small" x="2430" y="995">DMA • GPU • FIFO controls</text>
+  <text class="small" x="2430" y="1022">32-bit regs, zero-extended reads</text>
+  <text class="tiny" x="2430" y="1048">CPU can orchestrate outside mode 1</text>
+
+  <path class="bidir" d="M380 930H600V465"/>
+  <path class="bidir" d="M380 980H2200V311H2285"/>
+  <path class="bidir" d="M380 1030H1880V710H2020"/>
+  <path class="bidir" d="M2413 416V840H2110V900"/>
+  <path class="bidir" d="M2413 490V860H2430V900"/>
+
+  <rect class="warn" x="445" y="1180" width="1920" height="190" rx="16"/>
+  <text class="stage" x="1405" y="1220">FGMT dependency-spacing and control caveats</text>
+  <text class="note" x="1405" y="1260">There is no forwarding, hazard detector, stall, or branch flush. With continuous round-robin scheduling, a thread reappears every four clocks and its prior writeback is visible as its next instruction enters ID.</text>
+  <text class="note" x="1405" y="1293">The synchronous IMEM output and ifid_reg are separate register boundaries: a PC address request reaches ID two edges later. Thread ID travels with all pipeline state.</text>
+  <text class="note" x="1405" y="1326">start_stop freezes only the global scheduler (and gates trace writes); PCs and pipeline registers continue clocking. Pausing can repeatedly inject one thread and defeats normal FGMT spacing.</text>
+
+  <rect class="pipe" x="590" y="1435" width="24" height="24"/><text class="small" x="685" y="1454">pipeline register</text>
+  <rect class="compute" x="900" y="1435" width="24" height="24"/><text class="small" x="1010" y="1454">compute / decode</text>
+  <rect class="memory" x="1250" y="1435" width="24" height="24"/><text class="small" x="1360" y="1454">memory / window</text>
+  <rect class="control" x="1600" y="1435" width="24" height="24"/><text class="small" x="1710" y="1454">control / feedback</text>
+</svg>

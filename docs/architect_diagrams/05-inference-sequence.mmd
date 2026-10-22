@@ -1,0 +1,44 @@
+sequenceDiagram
+    autonumber
+    participant H as Host/CPCI or ARM alias control
+    participant P as input_arbiter + output_port_lookup
+    participant F as convertible_fifo
+    participant C as ARM CPU
+    participant D as DMA
+    participant G as GPU
+    participant O as output_queues / egress
+
+    H->>H: Hold CPU/GPU in reset; load IMEM and setup data
+    H->>F: Set FIFO_MODE = 0
+    P->>F: NF2 packet words {ctrl[7:0], data[63:0]}
+    F-->>P: Deassert in_rdy after one count-delimited packet
+
+    opt CPU packet/header preparation
+        H->>F: Set FIFO_MODE = 1
+        H->>C: Release CPU scheduler (CPU_CTRL.start_stop = 1)
+        C->>F: 0x80-0xEF loads/stores map to FIFO[0x00-0x6F]
+        C->>H: 0xF0-0xFF alias writes can configure DMA/GPU/FIFO
+    end
+
+    H->>F: Set FIFO_MODE = 2 and keep it stable
+    H->>D: Program FIFO base, GPU base, length, dir=FIFO-to-GPU; pulse start
+    D->>F: READ prime, then one 64-bit payload per COPY cycle
+    D->>G: Write GPU DMEM Port B
+    D-->>H: dma_active clears after N COPY cycles
+
+    H->>G: Release GPU reset once to start at PC 0
+    G->>G: IF -> ID -> EX1 -> EX2 -> EX3 -> WB inference
+    G-->>H: kernel_done; wrapper freezes GPU cycle count
+
+    H->>D: Program dir=GPU-to-FIFO; pulse start
+    D->>G: Read GPU DMEM Port B
+    D->>F: Write FIFO payload with ctrl=0
+    D-->>H: dma_active clears
+
+    H->>F: Return FIFO_MODE = 0 before drain
+    H->>F: Pulse FIFO_DRAIN
+    F->>O: Header + packet words, one per ready cycle
+    Note over F,O: Current drain prefetch assumes continuous out_rdy; a stall can skip a word
+    O-->>H: Response packet observed at selected egress
+
+    Note over F,G: Port ownership summary: mode0 uses FIFO-B for drain; mode1+running uses CPU, otherwise PCI; mode2+active uses DMA on FIFO-B and GPU-DMEM-B, otherwise PCI

@@ -1,0 +1,129 @@
+========================================================================
+IDS training v2  (architecture: 25 -> 32 -> 32 -> 16 -> 16 -> 2)
+========================================================================
+  log_bytes        = True
+  categorical      = True
+  optimizer        = adam
+  epochs           = 200
+  cosine schedule  = True
+  qat              = True
+  weight_decay     = 0
+  seeds            = 1
+  snapshot_crit    = balanced
+  feature_select   = rfe
+  (non-legacy arch: scalar DMEM hex artifacts will be skipped)
+========================================================================
+
+Building categorical maps from train file...
+  protocol_type      3 unique values
+  service           70 unique values
+  flag              11 unique values
+
+Loading train...
+  shape = (125973, 41)   normal=67343  attack=58630
+Loading test...
+  shape = (22544, 41)   normal=9711  attack=12833
+
+Log1p-transforming heavy-tailed columns: ['count', 'dst_bytes', 'dst_host_count', 'dst_host_srv_count', 'duration', 'hot', 'num_compromised', 'num_failed_logins', 'num_file_creations', 'num_root', 'src_bytes', 'srv_count']
+
+Selecting top 25 features by RFE on RandomForestClassifier (n_estimators=200, step=1)...
+  selected:
+     1. dst_bytes                      imp=0.1665
+     2. src_bytes                      imp=0.1653
+     3. flag                           imp=0.0779
+     4. same_srv_rate                  imp=0.0739
+     5. diff_srv_rate                  imp=0.0486
+     6. dst_host_srv_count             imp=0.0467
+     7. dst_host_same_srv_rate         imp=0.0464
+     8. logged_in                      imp=0.0350
+     9. protocol_type                  imp=0.0344
+    10. count                          imp=0.0324
+    11. service                        imp=0.0307
+    12. dst_host_diff_srv_rate         imp=0.0295
+    13. dst_host_same_src_port_rate    imp=0.0286
+    14. dst_host_serror_rate           imp=0.0255
+    15. dst_host_srv_serror_rate       imp=0.0220
+    16. dst_host_srv_diff_host_rate    imp=0.0203
+    17. srv_serror_rate                imp=0.0168
+    18. dst_host_count                 imp=0.0160
+    19. srv_count                      imp=0.0135
+    20. serror_rate                    imp=0.0123
+    21. dst_host_rerror_rate           imp=0.0110
+    22. hot                            imp=0.0087
+    23. dst_host_srv_rerror_rate       imp=0.0078
+    24. num_compromised                imp=0.0069
+    25. rerror_rate                    imp=0.0065
+
+Min-max normalizing selected features to [0, 1]...
+
+Training 1 seed(s)...
+
+--- seed 1 (rng=53) ---
+  epoch   1: loss=0.1068  lr=0.00100  f32_train=0.9852  bf16_train=0.9847  bf16_test=0.7756
+  epoch   5: loss=0.0186  lr=0.00100  f32_train=0.9941  bf16_train=0.9943  bf16_test=0.7740
+  epoch  10: loss=0.0136  lr=0.00099  f32_train=0.9966  bf16_train=0.9961  bf16_test=0.7767
+  epoch  15: loss=0.0112  lr=0.00099  f32_train=0.9962  bf16_train=0.9963  bf16_test=0.7757
+  epoch  20: loss=0.0101  lr=0.00098  f32_train=0.9968  bf16_train=0.9971  bf16_test=0.8061
+  epoch  25: loss=0.0095  lr=0.00096  f32_train=0.9976  bf16_train=0.9977  bf16_test=0.7948
+  epoch  30: loss=0.0076  lr=0.00095  f32_train=0.9978  bf16_train=0.9973  bf16_test=0.7898
+  epoch  35: loss=0.0074  lr=0.00093  f32_train=0.9974  bf16_train=0.9968  bf16_test=0.7921
+  epoch  40: loss=0.0067  lr=0.00091  f32_train=0.9981  bf16_train=0.9977  bf16_test=0.7913
+  epoch  45: loss=0.0060  lr=0.00088  f32_train=0.9978  bf16_train=0.9979  bf16_test=0.7846
+  epoch  50: loss=0.0056  lr=0.00086  f32_train=0.9979  bf16_train=0.9971  bf16_test=0.7894
+  epoch  55: loss=0.0052  lr=0.00083  f32_train=0.9977  bf16_train=0.9970  bf16_test=0.7840
+  epoch  60: loss=0.0049  lr=0.00080  f32_train=0.9985  bf16_train=0.9984  bf16_test=0.7875
+  epoch  65: loss=0.0044  lr=0.00077  f32_train=0.9985  bf16_train=0.9985  bf16_test=0.7808
+  epoch  70: loss=0.0047  lr=0.00073  f32_train=0.9984  bf16_train=0.9988  bf16_test=0.7897
+  epoch  75: loss=0.0040  lr=0.00070  f32_train=0.9987  bf16_train=0.9986  bf16_test=0.7626
+  epoch  80: loss=0.0042  lr=0.00066  f32_train=0.9988  bf16_train=0.9985  bf16_test=0.7826
+  epoch  85: loss=0.0036  lr=0.00062  f32_train=0.9988  bf16_train=0.9987  bf16_test=0.7775
+  epoch  90: loss=0.0034  lr=0.00058  f32_train=0.9990  bf16_train=0.9989  bf16_test=0.7841
+  epoch  95: loss=0.0034  lr=0.00054  f32_train=0.9990  bf16_train=0.9983  bf16_test=0.7829
+  epoch 100: loss=0.0033  lr=0.00050  f32_train=0.9988  bf16_train=0.9986  bf16_test=0.7850
+  epoch 105: loss=0.0030  lr=0.00046  f32_train=0.9991  bf16_train=0.9989  bf16_test=0.7785
+  epoch 110: loss=0.0029  lr=0.00043  f32_train=0.9991  bf16_train=0.9988  bf16_test=0.7851
+  epoch 115: loss=0.0026  lr=0.00039  f32_train=0.9991  bf16_train=0.9988  bf16_test=0.7830
+  epoch 120: loss=0.0026  lr=0.00035  f32_train=0.9991  bf16_train=0.9989  bf16_test=0.7799
+  epoch 125: loss=0.0024  lr=0.00031  f32_train=0.9991  bf16_train=0.9983  bf16_test=0.7855
+  epoch 130: loss=0.0024  lr=0.00028  f32_train=0.9991  bf16_train=0.9990  bf16_test=0.7890
+  epoch 135: loss=0.0023  lr=0.00024  f32_train=0.9992  bf16_train=0.9991  bf16_test=0.7885
+  epoch 140: loss=0.0022  lr=0.00021  f32_train=0.9992  bf16_train=0.9983  bf16_test=0.7880
+  epoch 145: loss=0.0022  lr=0.00018  f32_train=0.9993  bf16_train=0.9992  bf16_test=0.7820
+  epoch 150: loss=0.0020  lr=0.00015  f32_train=0.9993  bf16_train=0.9989  bf16_test=0.7881
+  epoch 155: loss=0.0020  lr=0.00012  f32_train=0.9992  bf16_train=0.9988  bf16_test=0.7877
+  epoch 160: loss=0.0019  lr=0.00010  f32_train=0.9993  bf16_train=0.9992  bf16_test=0.7840
+  epoch 165: loss=0.0019  lr=0.00007  f32_train=0.9993  bf16_train=0.9990  bf16_test=0.7834
+  epoch 170: loss=0.0018  lr=0.00006  f32_train=0.9993  bf16_train=0.9990  bf16_test=0.7830
+  epoch 175: loss=0.0018  lr=0.00004  f32_train=0.9993  bf16_train=0.9990  bf16_test=0.7846
+  epoch 180: loss=0.0018  lr=0.00002  f32_train=0.9993  bf16_train=0.9990  bf16_test=0.7851
+  epoch 185: loss=0.0017  lr=0.00001  f32_train=0.9993  bf16_train=0.9991  bf16_test=0.7847
+  epoch 190: loss=0.0017  lr=0.00001  f32_train=0.9993  bf16_train=0.9990  bf16_test=0.7853
+  epoch 195: loss=0.0017  lr=0.00000  f32_train=0.9993  bf16_train=0.9990  bf16_test=0.7851
+  epoch 200: loss=0.0017  lr=0.00000  f32_train=0.9993  bf16_train=0.9990  bf16_test=0.7851
+  trained in 99.3s   epoch=20   bf16_train=0.9971   bf16_test=0.8061   crit=balanced   score=1.80317
+  bf16 KDDTest+ acc on first 2000 samples: 0.8245
+  confusion matrix (BF16 KDDTest+):
+    pred=N pred=A
+  N    858     29   recall=0.967
+  A    322    791   recall=0.711
+  precision: N=0.727  A=0.965   F1(A)=0.818   acc=0.825
+
+=== seed sweep summary (criterion=balanced) ===
+  seed=53  bf16_train=0.9971  bf16_test=0.8061  score=1.80317 *
+
+Final BF16 evaluation (seed=53, criterion=balanced, snapshot epoch=20)...
+  Snapshot bf16 KDDTrain+ acc: 0.9971 (full 125973 samples)
+  bf16 KDDTest+ accuracy:      0.8061 (18173/22544)
+  confusion matrix (BF16 KDDTest+):
+    pred=N pred=A
+  N   9411    300   recall=0.969
+  A   4071   8762   recall=0.683
+  precision: N=0.698  A=0.967   F1(A)=0.800   acc=0.806
+
+Writing artifacts...
+  C:\Dev\EE533Labs\Lab10_refine_for_application\programs\gpu\data_ids_lit-sota-ls0_weights.json
+  (skipped scalar .hex / expected.hex artifacts; only emitted for the legacy [25, 16, 8, 2] architecture. The packed BCAST DMEM hex is produced by toolchains/gpu/ids_data_generator_bcast.py from the JSON above.)
+
+Summary
+  features:  ['dst_bytes', 'src_bytes', 'flag', 'same_srv_rate', 'diff_srv_rate', 'dst_host_srv_count', 'dst_host_same_srv_rate', 'logged_in', 'protocol_type', 'count', 'service', 'dst_host_diff_srv_rate', 'dst_host_same_src_port_rate', 'dst_host_serror_rate', 'dst_host_srv_serror_rate', 'dst_host_srv_diff_host_rate', 'srv_serror_rate', 'dst_host_count', 'srv_count', 'serror_rate', 'dst_host_rerror_rate', 'hot', 'dst_host_srv_rerror_rate', 'num_compromised', 'rerror_rate']
+  bf16 acc:  0.8061 on 22544 test samples

@@ -1,0 +1,44 @@
+----------------------------------------------------------------
+Release 10.1.03 - XPower Analysis Report SoftwareVersion:K.39 (lin64)
+Copyright (c) 1995-2008 Xilinx, Inc.  All rights reserved.
+
+# NOTE:  This file is designed to facilitate import into a spreadsheet program
+# such as Microsoft Excel for viewing, printing and sorting.  The "|" character
+# should be selected as the data field separator.
+
+/opt/Xilinx/10.1/ISE/bin/lin64/unwrapped/xpwr nf2_top_par.ncd nf2_top.pcf -o nf2_top_par_v2.pwr 
+
+Design       | /root/netfpga/projects/lab10/synth/nf2_top_par.ncd              |
+Preferences  | nf2_top.pcf                                                     |
+Part         | xc2vp50ff1152-7                                                 |
+Data version | PRELIMINARY,v1.0,05-28-03                                       |
+
+Power summary                        |    I(mA)   |    P(mW)   |
+----------------------------------------------------------------
+Total estimated power consumption    |            |      2674  |
+                               ---
+               Total Vccint   1.50V  |      1571  |      2357  |
+               Total Vccaux   2.50V  |        20  |        50  |
+               Total Vcco25   2.50V  |       107  |       267  |
+                               ---
+                           Clocks    |       544  |       817  |
+                              IOs    |         9  |       100  |
+                           Inputs    |        10  |        15  |
+                            Logic    |       486  |       729  |
+                          Outputs    |
+                             Vcco25  |        71  |       177  |
+                          Signals    |       452  |       678  |
+                               ---
+           Quiescent Vccint   1.50V  |        70  |       105  |
+           Quiescent Vccaux   2.50V  |        20  |        50  |
+           Quiescent Vcco25   2.50V  |         2  |         4  |
+
+Thermal summary
+----------------------------------------------------------------
+Estimated junction temperature       |           54C           |
+                      Ambient temp   |           25C           |
+                         Case temp   |           53C           |
+                         Theta J-A   |          11C/W          |
+
+Analysis completed: Sat Apr 25 16:10:09 2026
+----------------------------------------------------------------

@@ -1,0 +1,431 @@
+A Pattern Matching Co-processor for Network Security
+
+Young H. Cho and William H. Mangione-Smith
+
+            University of California, Los Angeles
+            Department of Electrical Engineering
+
+                     Los Angeles, California
+
+             young,billms@ee.ucla.edu
+
+ABSTRACT                                                                            e-mail. Most firewalls today are equipped to examine the
+                                                                                    packet headers only. Therefore, application layer network
+It has been estimated that computer network worms and                               attacks can slip through the security systems undetected.
+virus caused the loss of over $55B in 2003. Network security                        While e-mail lends itself to store and scan techniques, such
+system use techniques such as deep packet inspection to de-                         as those developed by anti-virus companies, other applica-
+tect the harmful packets. While software intrusion detection                        tions (e.g. databases) do not.
+system running on general purpose processors can be up-
+dated in response to new attacks. They lack the processing                             An effective security measures for such attack is deep
+power to monitor gigabit networks. We present a high per-                           packet inspection [1]. Deep packet inspection not only ex-
+formance pattern matching co-processor architecture that                            amines the packet headers but also the payload data. There-
+can be used to monitor and identify a large number of in-                           fore, a security system that incorporates deep packet inspec-
+trusion signature. The design consists of a bank of pattern                         tion offers better protection from attacks than traditional
+matchers that are used to implement a highly concurrent                             firewalls. It is evident that traditional firewalls that in much
+filter. The pattern matchers can be programmed to match                             use today have not been effective in differentiating network
+multiple patterns of various lengths, and are able to leverage                      packets containing the "Sobig-F" worm from normal e-mails.
+the existing databases of threat signatures. We have been                           However, deep packet inspection system, such as Snort [2, 3,
+able to program the filters to match all the payload patterns                       4], can be configured to detect "Sobig-F" worm by searching
+defined in the widely used Snort network intrusion detection                        for a specific 76 byte signature pattern in the payload.
+system at a rate above 7 Gbps, with memory space left to
+accommodate threat signatures that become available in the                          1.1 Deep Packet Inspection
+future.
+                                                                                       Since the network traffic is made of fragmented packets,
+Categories and Subject Descriptors                                                  each stream need to be reassembled before sending it to the
+                                                                                    deep packet inspection system. There are also some class
+C.3 [Computer Systems Organization]: Special-purpose                                of attacks that use unconventional protocol features to con-
+and application-based systems                                                       fuse and avoid the intrusion detection system. One such
+                                                                                    attack uses overlapping fragmented IP packets. Such must
+General Terms                                                                       be eliminated by normalising the packets. Packet normal-
+                                                                                    ization produces consistantly clean network traffic without
+Security,Design                                                                     abnormalities [5].
+
+Keywords                                                                               Most of the currently available deep packet inspection sys-
+                                                                                    tems use one or more general purpose processors running
+Network security, Intrusion, Pattern matching, Pattern search,                      signature-based filtering software. Although these software
+Snort                                                                               systems can be easily reconfigured to detect new attacks,
+                                                                                    the underlying processor are not powerful enough to sustain
+1. INTRODUCTION                                                                     acceptable filtering rate on gigabit (and above) networks.
+                                                                                    For example Snort, one of the most widely used software
+   In August of 2003, the Internet worm named Sobig-F ac-                           system, when configured with 500 real string patterns can
+counted for $29.7 billion of economic damages worldwide.                            only sustain a bandwidth less than 50 Mbps on a dual 1 Ghz
+This type of worm spreads through a file in the payloads of                         Pentium 3 system.
+
+Permission to make digital or hard copies of all or part of this work for              Since the payload data is under the control of the user
+personal or classroom use is granted without fee provided that copies are           application, all the patterns must be compared at every byte
+not made or distributed for profit or commercial advantage and that copies          of the payload during the search process. Therefore, as the
+bear this notice and the full citation on the first page. To copy otherwise, to     number of patterns in the software system increases, the
+republish, to post on servers or to redistribute to lists, requires prior specific  filtering process needs more processing power. We refer to
+permission and/or a fee.                                                            this pattern matching task as the dynamic inspection.
+DAC 2005, June 13­17, 2005, Anaheim, California, USA.
+Copyright 2005 ACM 1-59593-058-2/05/0006 ...$5.00.                                     This exhaustive search process on general purpose pro-
+                                                                                    cessor is expensive and the current software solutions are
+                                                                                    impractical for networks over 1 Gbps. Therefore, we have
+                                                                                    developed a specialized pattern matching co-processor for
+                                                                                    the dynamic pattern search.
+   In the following section, we briefly discuss how imple-       We present a compact and programmable pattern search co-
+menting pattern matching on reconfigurable hardware al-          processor for multi-gigabit per second network.
+lows deep packet filtering on high bandwidth network. Then,
+in section 3, we present our new architecture for 1+ giga-       3.1 Pattern Detection Module
+bit networks. We show that our system provides better
+performance while maintaining the flexibility of being re-          The basic pattern detection module (PDM) is shown in
+programmable. In section 4, we describe an initial pattern       figure 1. The function of the pattern detection module is to
+matcher implementation using the architecture. We develop        efficiently detect segments of pattern using programmable
+algorithms to map all the patterns defined in the Snort rules    hash functions followed by discrete string comparison.
+into the design. We conclude with comparison of our imple-
+mentation and other recent implementation of the pattern            At every clock cycle the input pattern is hashed to gen-
+matcher.                                                         erate an index. The index is then used as an address of a
+                                                                 memory where the corresponding pattern is stored. The re-
+2. RELATED WORK                                                  trieved pattern from the memory is then compared with the
+                                                                 input pattern to determine whether the pattern is an exact
+   Sidhu and Prasanna mapped Non-deterministic Finite Au-        match. When there is a match, the index can be forwarded
+tomata (NFA) for regular expression into FPGA to per-            with an unique identifier for the pattern.
+form fast pattern matching [6]. Subsequently, Franklin and
+Hutchings implemented a pattern search engine in JHDL,                          Index           Detected
+based on a subset of Snort IDS rules [7]. At around the                                          Pattern
+same time, our FPGA filter used 8-bit decoders to build 3.2      Hash  Memory        Pattern      Index
+Gbps pattern match engine on FPGA [2]. Sourdis mapped a                         Offset Comp
+similar design with a deeper pipeline to increase the filtering                               Match
+rate to 10 Gbps [8].                                                                          Signal
+
+   Our follow-up work and a similar JHDL based design by         Input Pattern  Shifter
+Clark and Baker made contribution in reducing the size of                                 Aligned Pattern
+the design by eliminating duplicate logic [3, 9, 10]. Such
+improvement allowed the decoder design to fit into a single                 Figure 1: Pattern Detection Module
+FPGA with performance of several gigabits per second
+                                                                    We use parametrized and cascaded hardware so that the
+   Gokale et al. of Los Alamos National Laboratory imple-        length of the patterns are not fixed. Therefore, the max-
+mented a fast re-programmable pattern search system using        imum length of the input bytes that is used to generate
+content addressable memories (CAM) [11]. Although such           the hashed index is the minimum length of the patterns de-
+system does not require reconfiguration of FPGA, the low         tectable by a single PDM. Moreover, the maximum range of
+performance of CAM limits the usefulness as well as the          the hashed index determines the maximum entries that can
+number of mappable rules.                                        be stored in the memory. For instance, if two byes of the in-
+                                                                 put pattern are hashed to generate the index, the PDM can
+   Washington State University presented an approximate          be configured to detect maximum of 65,536 patterns with
+method using Bloom filters. They detect the patterns at          the minimum length of two bytes.
+600 Mbps with number of false positives which is dependent
+on the number of rules as well as size of the alotted mem-       3.1.1 Hashed Index
+ory. Their approach uses hashing, and ultimately requires
+a secondary exact string comparison process to detect false         Hashing the substrings in a static position places a con-
+positives [12].                                                  straint on which patterns can be detected by one PDM. If
+                                                                 the first two bytes of all the patterns are used for generating
+   Our latest FPGA implementation that uses a combina-           the index, some would have the same hash value and could
+tion of 8-bit decoders and read-only-memory to reduce the        not be stored in the same PDM. For higher resource utiliza-
+amount of discrete gates by store partial information in the     tion, we allow the index to be generated by any substring of
+memory. The logic savings is achieved by using the decoders      the pattern.
+to generate the address for the partial pattern entry in a
+ROM. By balancing the use of the discrete gates and mem-            In practice, each pattern consists of more than one unique
+ory, this yields the highest performance per gate, thus far      substring. By allowing the hash function to start at differ-
+[3, 13].                                                         ent byte offsets of the pattern, the PDM memory utilization
+                                                                 can be improved. Therefore, the byte offset data is stored
+   Unlike the software solutions, many of the FPGA im-           with the pattern information in the memory. Using the off-
+plementations satisfy the gigabit per second filtering rate.     set and the pattern length, the input pattern is shifted and
+However, other than the CAM implementation [11] and the          compared against the target pattern as shown in figure 1.
+bloom filter design [12], the FPGA design compilation and
+reconfiguration time can be in the order of minutes to days.        Since the index is generated from a substring of the pat-
+Such delay in reconfiguration may not acceptable as new          tern at a different offset, the timing of the identification
+worms are released to the network in higher frequency.           index output may not indicate the starting byte of the pat-
+                                                                 tern. By using the offset value with the switched pipeline as
+3. ARCHITECTURE                                                  the one shown in figure 2, the index output timing can be
+                                                                 adjusted to correspond with the start of the pattern.
+   A Snort rule contains information to search through all
+layers of network packets to detect a particular attack [4].     3.1.2 Prioritized Parallel Modules
+The most computationally intensive phase of the detection
+process is an exhaustive string search on the packet payload.       Some patterns, especially the ones with a small set of
+                                                                 unique substrings, cannot be mapped on to the same PDM
+                                                                 module because the entries for their hashed indices might
+Index                                                               Every long pattern can be broken into several short pat-
+                                                                 tern segments. If we match the order and the timing of the
+           1  1     1                      1                     segment sequence, we can effectively detect the correspond-
+              0                                                  ing long pattern.
+0          0   n-1  0                      0
+                                                                    As in figure 3, the long pattern is divided into smaller
+        n              1                      0                  segments that fit in to a specific PDM. These segments are
+                                                                 stored in the PDMs along with a flag bit that indicates that
+Offset Decoder                                                   it is a segment of a long pattern. The detected indices are
+                                                                 forwarded to the long pattern state machine (LPSM).
+           Figure 2: Switched Pipeline
+                                                                 3.2.2 Programmable State Machine
+be used by another pattern (e.g. pattern that is made of all
+zeros). Therefore, more than one PDM must run in parallel           The LPSM examines the sequence of segment indices for
+to detect multiple patterns with equal hashed values.            the correct ordering and the timing to detect the correspond-
+                                                                 ing long pattern.
+   In order to increase memory utilization, each PDM can
+have different sized memory and logic based on a range of           As shown in figure 4, the LPSM is consists of the memory
+target patterns. To maintain consistent output timing for        and the pipeline similar to that of PDM. Unlike the PDM,
+the parallel modules, smaller PDMs may need extra stages         the memory only contains information for the current and
+of pipeline to match with longest PDM.                           the next "state". Each state is expressed as number which
+                                                                 is based on the index of the pattern segments detected by
+   If the PDMs are configured to examine the same data           the PDMs.
+simultaneously, in most cases, only one PDM will output a
+valid index for a pattern match. By extending the output                                    Segment Index
+bits to indicate its module number, the outputs from the
+parallel PDMs can be merged to produce one index output.                           reset
+
+   Depending on the memory content of the PDMs, more             Memory      comp         Register
+than one PDM can output valid indices at a given cycle.
+Multiple detections occur if one pattern is a substring, start-                    current state
+ing with the first byte, of another pattern. We refer to such
+patterns as "overlapping patterns." When more than one           next
+index is detected in the same cycle, it is sufficient to output  state delay type
+the index for the longest pattern since it also indicates the
+detection of the shorter patterns.                               Switched         predicted
+                                                                 Pipeline                      comp
+   Our design use chains of multiplexors to assign the prior-
+ities and merge the outputs of parallel PDMs. The longer                          state
+of any conflicting patterns must be stored in the PDM with                                match
+the highest priority.
+                                                                 next valid  AND          To other
+   The above PDM architecture allows the detection of pat-       LPSM bits                LPSMs
+terns of lengths that are less than or equal to that of the
+widest memory module from all the PDMs. We refer to              Figure 4: Long Pattern State Machine
+such pattern as "short pattern."
+                                                                    The memory entry in LPSM with the state information
+3.2 Long Pattern State Machine                                   is loaded using part of the index identified by the PDMs.
+                                                                 The rest of the bits for the index are stored in the memory
+   For applications such as Snort, where some patterns are       to verify the current state. The entry also has a type field
+long, it is not efficient to have the PDM with memory wide       that indicates whether the current index is the first, the
+enough to store those patterns. In this section, we describe     middle, or the last segment of the long pattern. The entry
+another component that uses PDMs to detect patterns that         also specifies what the next state is and when it is expected
+are longer than the width of PDM memories.                       to be detected by the PDMs.
+
+3.2.1 Sequence of Segments                                          The sequence matching process is only initiated when the
+                                                                 type of the current state indicates that it is the start of a
+             Index A Index B Index C Index D                     long pattern segment. The expected next state is forwarded
+                                                                 to the switched pipeline like the one used in PDM to add
+                 THE PATTERN THAT IS TOO LONG TO FIT IN A PDM    the appropriate delay. When the next index reaches the end
+                                                                 of the pipeline, it is compared with the actual current state
+ Input        PDM 0 PDM 1 PDM 2            Parallel              to determine whether there was a match.
+Stream               Priority Multiplexor  PDMs
+                                   Index                            When the previous next state is an exact match of the cur-
+                                                                 rent state at the end of the pipeline, the expected next state
+                                                                 is forwarded in to the pipeline as before. If the expected
+                                                                 next state does not match the current state, this process
+                                                                 is terminated without any output. Otherwise, the process
+                                                                 continues until the current state is specified as the last seg-
+                                                                 ment of the long pattern. Then the last matching index is
+                                                                 forwarded as an index for the detected long pattern.
+
+Figure 3: Divided segments of the long pattern
+maybe detected by different PDMs
+3.2.3 Parallel LPSM                                            differ dramatically to optimize the resource utilization. For
+                                                               example, the designer may decide that LPSMs are unnec-
+   Depending on the depth of the LPSM memory and the           essary if all the target patterns are short and uniform in
+long pattern indices, more than one entry maybe necessary      length. On the other hand, the designer may choose to have
+for the same address. In order to address this, more than one  small PDM followed by many parallel LPSMs if the patterns
+LPSM can run in parallel to detect more than one sequence      consists of repetitive set of common substrings.
+of states.
+                                                                  Determining the parameters of the architecture is a com-
+   In order to interoperate between the LPSMs, the match       plex process which effects the behavior of the system. How-
+bit is forwarded to the modules that contain all the corre-    ever, this process is beyond the scope of this paper. There-
+sponding next state for the current state. When any of the     fore, we attempt to describe one system we have imple-
+LPSM receives the match bit, its expected next state is for-   mented to successfully map the entire Snort rules.
+warded to the pipeline regardless of the result in its own
+comparator.                                                    4.1.1 PDM Parameters
+
+3.3 System Integration and Features                               The length of the patterns range from 1 to 122 bytes in
+                                                               Snort rule set. The contents of the patterns vary from bi-
+   Unlike the FPGA designs, which required functional cir-     nary sequences to ASCII strings. Therefore, we design the
+cuit changes, this design only requires updating memory val-   filter to support patterns of various lengths as well as the
+ues. With the correct memory values, the short patterns        content. For the pattern set, using different size memories in
+are identified using the PDMs whereas the long patterns are    the PDMs can increase the memory utilization and decrease
+identified using both the PDM and the LPSM modules.            the logic area. However, we choose to set the dimension of
+                                                               all the PDM to be same to simplify of the design process.
+3.3.1 Reusing Memory Entries
+                                                                  The dimension of the memory in each PDM is 146 bits
+   Since the multiple index sequences can be tracked by the    by 512 entries. The memory is wide enough to store all the
+parallel LPSMs, they can be programmed to reuse pattern        information necessary to detect up to 17 bytes long pattern.
+segments that appear in more than one pattern. By reusing      In our filter, eight of these PDM units are connected in
+the pattern segments for more than one pattern, the memory     parallel to provide 8-levels of priority.
+requirement for PDM can be reduced.
+                                                                  The filter takes two consecutive input bytes to generate
+   Aho and Corasick's keyword tree [14] is used in many effi-  the 9 bit address for the PDM memories. As we mentioned
+cient software pattern search algorithms, including the Snort  in the architecture description, the minimum pattern length
+IDS [4]. This algorithm is used in the FPGA implementa-        for our filter, therefore, is 2 bytes long. Since single byte
+tion to reduce the hardware area [3]. We also apply the        pattern can be more efficiently detected using byte decoders,
+algorithm to configure the PDM memories.                       we do not map them on the filter.
+
+   A keyword tree is a way to store a set of patterns into        The hash function logic consists of series of multiplexors
+an optimized tree of common keywords. The conversion           to independently choose any 9 bits of the 16 bits. The hash
+not only reduces the amount of required storage, but also      logic in each PDM are individually configurable to give more
+narrows the number of potential patterns as the pattern        flexibility for the programmer.
+search algorithm traverses the tree.
+                                                               4.1.2 LPSM Parameters
+   First, the pattern set must be analyzed to form the key-
+word trees. Once the keyword trees are generated, its key-        The design consists of eight units of LPSMs, each with
+words are stored as pattern segments in the PDMs and           29 bit by 512 memory entries. Although we found that 256
+the edges are stored as the state transitions in the paral-    memory entries per LPSM is sufficient to completely map
+lel LPSMs. This optimization allows the duplicate pattern      the entire Snort contents, we use the bigger memory for eas-
+segments to be collapsed into a single segment to save PDM     ier filter programming in the future. Since each LPSM can
+memory space.                                                  match different sequence of pattern, the design is capable of
+                                                               reusing one short pattern segment up to eight times.
+4. SNORT IMPLEMENTATION
+                                                                  In order to save memory space, the hashing logic for LPSM
+   Snort is one of the most widely used network intrusion de-  uses portion of index bits to load the state information. The
+tection system (NIDS) that uses deep packet inspection. It     index bits 11 through 2 are directly connected to the address
+is open source software that can be configured with the set    of the memory while the rest of the bits are, later, matched
+of signatures that are used to identify network attacks. In    with the memory content.
+June 2004, the Snort rule set contained 1,729 string patterns
+that should to be searched dynamically in the network pay-     4.2 Pattern Software
+load. To evaluate the effectiveness of our architecture, we
+implement the filter based on the architecture to support         Once the hardware parameters are set, the resulting data-
+the entire Snort rule set. Our design contains additional      path can be programmed using several different algorithms.
+memory space for flexible configuration in the face of new     Depending on the complexity of the algorithms and the pat-
+attacks.                                                       terns, there can be a big difference in compilation time as
+                                                               well as the program size. In general, reducing the size of the
+4.1 Hardware Configuration                                     program takes longer compilation time. However, smaller
+                                                               program tend to yield cleaner indexing result. The system
+   The dimension of the memories, the number of PDMs,          performance stays constant, regardless the size of the pro-
+the number of LPSMs, and the hash functions are the ar-        gram.
+chitecture parameters. These parameters allow the designer
+to customize the filter for a given threat profile. Depending     Due to variety of possible algorithms and optimizations
+on the pattern set, the parameters of the architecture may     that can be applied to program the filter, we believe this
+step is also beyond the scope of this paper. Therefore, we       on to the LPSMs. Each index is mapped on to one LPSM
+present a few direct and effective algorithms used to map        pointing to one or more LPSMs that matches the corre-
+the entire pattern set defined in the Snort rules.               sponding next index. If there are patterns with same be-
+                                                                 ginning indices, the programmer can choose to use only one
+4.2.1 Pattern Preprocessing                                      LPSM to keep track of all the patterns until it branches off
+                                                                 to different patterns. This optimization will allow the un-
+   For the above hardware, the long patterns must be broken      used entries of the LPSMs to be used for other sequence of
+into shorter segments of 17 bytes or less. Due to the prior-     patterns.
+ities assigned to the PDM units, the short patterns do not
+have to be unique. However, eliminating duplicate patterns          After the data is successfully mapped on to the virtual
+would save memory space. In order to identify each pattern       filter, the memory values can be directly copied in to the
+with an unique index, the last segment of every pattern must     filter memories.
+be different.
+                                                                 4.3 Results
+   A simple algorithm is used to break the long patterns
+into smaller segments that fit in the PDMs. The algorithm           The hardware design is written in structural verilog and
+produces a list of segments containing overlapping patterns.     the programmer is written in C++. As described in the
+The overlapping patterns can assert detections in several        previous sections, the hardware is composed of 8 parallel
+PDMs in a single cycle. By assigning higher priority to the      units of PDMs and 8 parallel units of LPSMs.
+longer of any two overlapping patterns, the detection of the
+longer index also indicates the detection of shorter patterns.      As of June 2004, there are total of 1,729 unique patterns
+There is no need for priority for the non-overlapping pat-       with lengths 2 to 122 bytes in Snort NIDS. The total number
+terns.                                                           of bytes that the filter need to compare are 22,340 bytes.
+                                                                 Using the simple algorithms, the programmer successfully
+   If any segment of the long pattern is an overlapping pat-     configured the hardware to filter the entire set of patterns.
+tern, it must have the highest priority. Such priority is au-
+tomatically assigned when the algorithm divides the pattern         The pattern mapping would be more efficient if the mem-
+into maximum lengthed segments.                                  ory usage distribution and the index information of patterns
+                                                                 are used. Although our algorithm does not consider them
+   Once the list of pattern segments are generated, it can       in during the mapping process, the hardware still proved to
+be used to generate index sequences for all the long pat-        be robust enough to store the rule set.
+terns. When the long patterns are divided into smaller seg-
+ments, the corresponding sequence of segment identifiers are        During the programming process, 374 long patterns are
+recorded along with the time delay between subsequent seg-       transformed into 752 short pattern segments; making the
+ments and the type flags. These data are programmed into         total number of patterns for the PDMs 2,107. Along with
+LPSM to keep track of the long patterns.                         the segments, the LPSMs are programmed to make up to 7
+                                                                 state transitions.
+4.2.2 Programming the Filter
+                                                                    The entire pattern set occupies approximately 50% of the
+   All the PDMs and the LPSMs are memory mapped. As              PDM and 18% of LPSM memory, leaving enough space
+far as the programmer is concerned, the filter can look like     many additional patterns. In fact, given a complex algo-
+a large memory. The parameters of the hash functions can         rithm that reuses duplicate substring, the filter can have
+be also treated as a memory mapped location. Our imple-          more than double the number of patterns defined in the
+mentation uses two ports to program the filter, one for the      Snort NIDS.
+memory modules in the PDMs and LPSMs and the other
+for programming hash functions.                                     On an AMD Athlon XP 1800+ processor under cygwin,
+                                                                 the total runtime of the programmer to process and map
+   Before the filter is programmed, the data for the pattern     the patterns into the virtual memory space is 771 msec. We
+matching modules must be mapped on to a virtual filter           generated the memory modules in Verilog with the contents
+with same configuration. The mapping procedure is neces-         of the virtual memory to verify our design in simulation
+sary to determine exact address locations for all data. Once     environments.
+the data is correctly mapped in to the virtual memory space,
+programming the filter is equivalent to writing into a mem-          Module       Area   Units×Area  Cr-path
+ory.                                                                          0.075 mm2   0.600 mm2  <1.0 ns
+                                                                 PDM Logic    0.024 mm2   0.188 mm2  <1.0 ns
+   The list of pattern segments, their length, and the con-      LPSM Logic   0.844 mm2   6.752 mm2   1.12 ns
+trol information from the preprocessing step are mapped on       PDM Mem      0.168 mm2   1.342 mm2   1.12 ns
+to the PDMs. Our mapper uses an algorithm that incre-            LPSM Mem
+mentally fills the PDM memory according to the pattern                               -    8.882 mm2   1.12 ns
+segment priority and the hash value. If the hash function         DPF Filter
+fails to map the patterns, it simply changes the hashing pa-
+rameters to re-map the patterns.                                 Table 1: ASIC design area of the filter using 0.18
+                                                                 µm technology
+   These simple algorithm mapped the entire Snort on to
+our initial implementation. However, the segments were not          We synthesized and routed the filter in ASIC using 0.18
+evenly distributed into all the memory modules. A better         µm technology in Cadence Synopsis tools. The area for the
+algorithm can use the distribution of the patterns in the        processing modules account for less than 9% of the entire
+memory and the frequency of possible indices for each pat-       design while the rest of the area is occupied by the memory
+tern to efficiently map the pattern. Such mapping analysis       modules. As shown in table 1, the area and the critical path
+will take longer execution time.                                 is with to the memory modules in the design. Since the
+                                                                 memory can operate at an effective frequency of 893 Mhz,
+   The sequences of indices and other control fields are mapped  the sustainable bandwidth of the filter is 7.144 Gbps.
+
+                                                                    In table 2, we list the area and performance result of our
+Design          Device     BW      # of  Total Mem Gates/                               Montpellier, France, September 2002, pp. 452­461,
+                          (Gbps)  Bytes  Gates (kb) Byte                                Springer-Verlag.
+
+Cho-MSmith      Spartan3  1.90    20800 4415 162 0.21                              [3] Young H. Cho and William H. Mangione-Smith,
+RDL+ROM            400                                                                  "Deep Packet Filter with Dedicated Logic and Read
+                                                                                        Only Memories," in IEEE Symposium on
+Baker-Prasanna  Virtex2   1.79    8263 2892 0 0.35                                      Field-Programmable Custom Computing Machines,
+  USC Unary     Pro100                                                                  Napa Valley, CA, April 2004, IEEE.
+
+Cho-MSmith      ASIC 7.14 * 22340  11163 864 0.50                                  [4] Neil Desi, "Increasing Performance in High Speed
+ASIC SRAM                                                                               NIDS: A look at Snort's Internals," Feb 2002.
+
+Cho-MSmith      Spartan3  2.00    20800 16930 0                            0.81    [5] David Watson, Matthew Smart, G. Robert Malan,
+  Decoder         1500                                                                  and Farnam Jahanian, "Protocol Scrubbing: Network
+                                                                                        Security through Transparent Flow Modification," in
+Sourdis et al.  Virtex2   2.68    18031 19902 0                            0.97         IEEE/ACM Transactions on Networking. April 2004,
+Pred. CAM        3000                                                                   ACM Press.
+
+Clark-Schimmel  Virtex    0.80 17537 19698 0 1.10                                  [6] R. Sidhu and V. K. Prasanna, "Fast Regular
+   RDL based    1000                                                                    Expression Matching using FPGAs," in IEEE
+                                                                                        Symposium on Field-Programmable Custom
+Franklin-       VirtexE   0.40    8003 20618 0 2.58                                     Computing Machines, Napa Valley, CA, April 2001,
+Hutchings        2000                                                                   IEEE.
+
+Gokhale et al.  VirtexE   2.18    640 ~9722 24                             15.19   [7] R. Franklin, D. Carver, and B. L. Hutchings,
+    CAM          1000                                                                   "Assisting Network Intrusion Detection with
+                                                                                        Reconfigurable Hardware," in Proceedings of the IEEE
+* Bandwidth measured from ASIC design using 0.18 m library                              Symposium on FPGA's for Custom Computing
+ Patterns are using only about half of the maximum capacity of the filter               Machines, Napa Valley, CA, April 2002, IEEE.
+
+Table 2: Pattern Filter Comparison Chart                                           [8] Ioannis Sourdis and Dionisios Pnevmatikatos, "Fast,
+                                                                                        Large-Scale String Match for a 10Gbps FPGA-based
+filter with other recently built pattern filters. The new de-                           Network Intrusion Detection System," in 13th
+sign is indicated as ASIC SRAM. For the sake of comparison                              Conference on Field Programmable Logic and
+our ASIC filter was also compiled and mapped using FPGA                                 Applications, Lisbon, Portugal, September 2003,
+tools. As indicated, the gates per byte for our filter is rela-                         Springer-Verlag.
+tively comparable to the smallest design in FPGA. However,
+only half of the filter capacity is utilized with Snort NIDS.                      [9] Christopher R. Clark and David E. Schimmel,
+By applying new programming algorithm and adding new                                    "Scalable Parallel Pattern-Matching on High-Speed
+patterns to the set, the gates per byte may possibly decrease                           Networks," in IEEE Symposium on
+to below the smallest design.                                                           Field-Programmable Custom Computing Machines,
+                                                                                        Napa Valley, CA, April 2004, IEEE.
+5. CONCLUSION
+                                                                                  [10] Zachary K. Baker and Viktor K. Prasanna, "A
+   In this paper we describe a novel architecture for pat-                              Methodology for Synthesis of Efficient Intrusion
+tern matching co-processor for network intrusion detection                              Detection Systems on FPGAs," in IEEE Symposium
+system. The co-processor is RAM-based design that is pro-                               on Field-Programmable Custom Computing Machines,
+grammable using the list of substrings and the state tran-                              Napa Valley, CA, April 2004, IEEE.
+sistions. Its efficient pattern matching engine is capable of
+filtering the multiple gigabit network traffic. Since the pat-                    [11] M. Gokhale, D. Dubois, A. Dubois, M. Boorman,
+terns are programmed into the co-processor with software,                               S. Poole, and V. Hogsett, "Granidt: Towards Gigabit
+the architecture can be used to implement designs in FPGA                               Rate Network Intrusion Detection Technology," in
+as well as ASIC.                                                                        12th Conference on Field Programmable Logic and
+                                                                                        Applications, Montpellier, France, September 2002,
+   We have shown that our pattern filter is capable of yield-                           pp. 404­413, Springer-Verlag.
+ing performance that surpasses the most recent FPGA im-
+plementations while enabling the users to program it with-                        [12] J.W. Lockwood, J. Moscola, M. Kulig, D. Reddick,
+out having to regenrate and reconfigure the hardware. Such                              and T. Brooks, "Internet Worm and Virus Protection
+quick configuration may become critical, as the rate of emer-                           in Dynamically Reconfigurable Hardware," in Military
+gence of new attack increase.                                                           and Aerospace Programmable Logic Device (MAPLD),
+                                                                                        Washington DC, September 2003, NASA Office of
+6. REFERENCES                                                                           Logic Design.
+
+ [1] Seda O. Memik Gokhan Memik and William H.                                    [13] Young H. Cho and William H. Mangione-Smith,
+      Mangione-Smith, "Design and Analysis of a Layer                                   "Programmable Hardware for Deep Packet Filtering
+      Seven Network Processor Accelerator Using                                         on a Large Signature Set," in First IBM Watson
+      Reconfigurable Logic," in IEEE Symposium on                                       P=ac2 Conference, Yorktown, NY, October 2004,
+      Field-Programmable Custom Computing Machines,                                     IBM.
+      Napa Valley, CA, April 2002, IEEE.
+                                                                                  [14] Alfred V. Aho and Margaret J. Corasick, "Efficient
+ [2] Young H. Cho, Shiva Navab, and William H.                                          String Matching: An Aid to Bibliographic Search," in
+      Mangione-Smith, "Specialized Hardware for Deep                                    Communications of the ACM. June 1975, pp. 333­340,
+      Network Packet Filtering," in 12th Conference on                                  ACM Press.
+      Field Programmable Logic and Applications,
+

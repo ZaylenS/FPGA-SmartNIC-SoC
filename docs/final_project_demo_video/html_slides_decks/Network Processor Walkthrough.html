@@ -1,0 +1,1054 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Network Processor SoC — Packet Journey</title>
+<style>
+  html, body { margin: 0; padding: 0; height: 100vh; overflow: hidden; background: #1a1a1a; font-family: -apple-system, "Helvetica Neue", Arial, sans-serif; color: #2d3748; }
+  #stageWrap { position: fixed; inset: 0; overflow: hidden; }
+  #stage {
+    width: 1920px; height: 1080px; background: #ffffff;
+    position: absolute; left: 50%; top: 50%; overflow: hidden;
+    transform: translate(-50%, -50%); transform-origin: center center;
+  }
+
+  /* Reveal animation: hidden by default; "show" class fades + slides into place. */
+  .reveal { opacity: 0; transform: translateY(8px); transition: opacity 320ms ease-out, transform 320ms ease-out; }
+  .reveal.show { opacity: 1; transform: translateY(0); }
+  .reveal.fade-out { opacity: 0 !important; transform: translateY(0) !important; transition: opacity 200ms ease-in !important; }
+
+  /* Offline inset stays at 60% even when shown. */
+  .offline.show { opacity: 0.6; }
+  .upstream.show { opacity: 0.6; }
+
+  /* Type-out lines */
+  .typeline { opacity: 0; transition: opacity 180ms ease-out; }
+  .typeline.show { opacity: 1; }
+
+  /* Pulse-ring animation (used for blocks + arrows) */
+  @keyframes pulseRing {
+    0%   { stroke-opacity: 1; stroke-width: 6; }
+    100% { stroke-opacity: 0; stroke-width: 16; }
+  }
+  .pulse-ring { animation: pulseRing 900ms ease-out 1; transform-box: fill-box; transform-origin: center; }
+
+  /* Block soft glow */
+  @keyframes softGlow {
+    0%, 100% { filter: drop-shadow(0 0 0 rgba(43,108,176,0)); }
+    50%      { filter: drop-shadow(0 0 14px rgba(43,108,176,0.55)); }
+  }
+  .glow { animation: softGlow 1800ms ease-in-out infinite; }
+
+  /* Soft lane pulse */
+  @keyframes lanePulse {
+    0%, 100% { opacity: 0.55; }
+    50%      { opacity: 1; }
+  }
+  .lane-pulse { animation: lanePulse 1100ms ease-in-out infinite; }
+
+  /* Pipeline rolling highlight applied via JS by toggling .pipe-on class */
+  .pipe-pill { fill: #edf2f7; stroke: #2c5282; stroke-width: 1; transition: fill 180ms ease-out; }
+  .pipe-pill.pipe-on { fill: #bee3f8; }
+
+  /* Layer pill wave */
+  .layer-pill { fill: #edf2f7; stroke: #2c5282; stroke-width: 1; transition: fill 220ms ease-out; }
+  .layer-pill.layer-on { fill: #c6f6d5; stroke: #2f855a; }
+
+  /* Moving dash for DMA flow */
+  @keyframes dashMove   { to { stroke-dashoffset: -28; } }
+  @keyframes dashMoveR  { to { stroke-dashoffset:  28; } }
+  .flow-dash      { stroke-dasharray: 8 6; animation: dashMove  1.2s linear infinite; }
+  .flow-dash-rev  { stroke-dasharray: 8 6; animation: dashMoveR 1.2s linear infinite; }
+
+  /* Full-diagram closing glow */
+  @keyframes finalGlow {
+    0%   { filter: drop-shadow(0 0 0 rgba(43,108,176,0)); }
+    40%  { filter: drop-shadow(0 0 28px rgba(43,108,176,0.6)); }
+    100% { filter: drop-shadow(0 0 0 rgba(43,108,176,0)); }
+  }
+  .final-glow { animation: finalGlow 1400ms ease-in-out 1; }
+
+  /* Subtitle */
+  #subtitleWrap {
+    position: absolute; left: 80px; top: 838px; width: 1380px; height: 96px;
+    color: #4a5568; font-style: italic; font-size: 18px; line-height: 1.3;
+    overflow: hidden;
+  }
+  #subtitleWrap .sub { position: absolute; left: 0; top: 0; right: 0; opacity: 0; transition: opacity 320ms ease-out; }
+  #subtitleWrap .sub.show { opacity: 1; }
+
+  /* Stage counter */
+  #stageCounter {
+    position: absolute; right: 32px; top: 26px;
+    font-size: 14px; color: #718096; letter-spacing: 0.04em;
+  }
+  #stageTitle {
+    position: absolute; left: 32px; top: 26px;
+    font-size: 14px; color: #a0aec0; letter-spacing: 0.04em;
+  }
+
+  /* Controls */
+  #controls {
+    position: absolute; left: 80px; top: 940px; width: 1380px;
+    display: flex; gap: 12px; align-items: center;
+  }
+  #controls button {
+    font: 500 14px/1 -apple-system, "Helvetica Neue", Arial, sans-serif;
+    padding: 9px 18px;
+    background: #ffffff;
+    border: 1px solid #cbd5e0;
+    border-radius: 8px;
+    color: #2d3748;
+    cursor: pointer;
+    letter-spacing: 0.02em;
+  }
+  #controls button:hover { background: #f7fafc; }
+  #controls .spacer { flex: 1; }
+  #controls .progress {
+    height: 4px; width: 260px; background: #edf2f7; border-radius: 2px; overflow: hidden;
+  }
+  #controls .progress > div {
+    height: 100%; width: 0%; background: #2c5282; transition: width 200ms linear;
+  }
+
+  body.clean #controls { display: none; }
+  body.clean #stageCounter { opacity: 0.25; font-size: 11px; }
+  body.clean #stageTitle { display: none; }
+
+  /* SVG text helpers */
+  .label-bold   { font: 700 22px -apple-system, "Helvetica Neue", Arial, sans-serif; fill: #2d3748; }
+  .label        { font: 500 16px -apple-system, "Helvetica Neue", Arial, sans-serif; fill: #4a5568; }
+  .label-sm     { font: 400 14px -apple-system, "Helvetica Neue", Arial, sans-serif; fill: #4a5568; }
+  .label-italic { font: italic 400 14px -apple-system, "Helvetica Neue", Arial, sans-serif; fill: #718096; }
+  .label-italic-sm { font: italic 400 13px -apple-system, "Helvetica Neue", Arial, sans-serif; fill: #718096; }
+  .mono         { font-family: "SF Mono", "Menlo", "Consolas", monospace; }
+
+  /* Block fills/strokes */
+  .blk-soc       { fill: #e8f2ff; stroke: #2c5282; stroke-width: 5; }
+  .blk-fifo      { fill: #c6f6d5; stroke: #2f855a; stroke-width: 2; }
+  .blk-arm       { fill: #e9d8fd; stroke: #6b46c1; stroke-width: 2; }
+  .blk-dma       { fill: #fefcbf; stroke: #b7791f; stroke-width: 2; }
+  .blk-gpu       { fill: #fed7aa; stroke: #c05621; stroke-width: 2; }
+  .blk-data      { fill: #f7fafc; stroke: #4a5568; stroke-width: 1.5; }
+  .blk-panel     { fill: #f7fafc; stroke: #cbd5e0; stroke-width: 1; }
+  .arrow-active  { stroke: #2d3748; stroke-width: 3; fill: none; }
+  .arrow-struct  { stroke: #a0aec0; stroke-width: 2; fill: none; }
+  .arrow-dashed-purple { stroke: #6b46c1; stroke-width: 2; fill: none; stroke-dasharray: 6 5; }
+  .arrow-dashed-gray   { stroke: #a0aec0; stroke-width: 2; fill: none; stroke-dasharray: 6 5; }
+
+  .packet { fill: #2b6cb0; }
+</style>
+</head>
+<body>
+<div id="stageWrap"><div id="stage">
+
+  <div id="stageTitle">EE533 Final Project — Network Processor — Architecture walkthrough</div>
+  <div id="stageCounter">Stage 1 of 5</div>
+
+  <svg id="diagram" width="1920" height="1080" viewBox="0 0 1920 1080" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <marker id="arrowActive" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="#2d3748" />
+      </marker>
+      <marker id="arrowStruct" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="#a0aec0" />
+      </marker>
+      <marker id="arrowPurple" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+        <path d="M 0 0 L 10 5 L 0 10 z" fill="#6b46c1" />
+      </marker>
+    </defs>
+
+    <!-- ============== STRUCTURAL: Packet In/Out wires (gray, always present from stage 1 reveal 8) ============== -->
+    <g id="g-packetio" class="reveal" data-stage-min="1" data-order="8">
+      <!-- Packet In wire: from x=0 to x=30 (left edge of upstream inset), gray, at y=530 -->
+      <line x1="0" y1="530" x2="30" y2="530" class="arrow-struct" />
+      <text x="20" y="440" class="label-sm" text-anchor="start">Packet In</text>
+      <!-- Packet Out wire: SoC right edge to canvas right -->
+      <line x1="1680" y1="530" x2="1900" y2="530" class="arrow-struct" marker-end="url(#arrowStruct)" />
+      <text x="1900" y="510" class="label-sm" text-anchor="end">Packet Out</text>
+    </g>
+
+    <!-- ============== Upstream feature-extraction inset (Stage 1 reveal 10) ============== -->
+    <g id="g-upstream" class="reveal upstream" data-stage-min="1" data-order="10">
+      <rect x="30" y="455" width="170" height="150" rx="6" ry="6"
+            fill="#f7fafc" stroke="#a0aec0" stroke-width="2" stroke-dasharray="6 5" />
+      <text x="115" y="510" class="label" text-anchor="middle">upstream feature</text>
+      <text x="115" y="530" class="label" text-anchor="middle">extraction</text>
+      <text x="115" y="560" class="label-italic-sm" text-anchor="middle" font-style="italic" fill="#718096">(not in this demo)</text>
+      <!-- dashed gray arrow from inset right edge to SoC -->
+      <line x1="200" y1="530" x2="240" y2="530" class="arrow-dashed-gray" marker-end="url(#arrowStruct)" />
+    </g>
+
+    <!-- offline inset placeholder; rendered later in SVG so dashed arrows are on top of SoC -->
+
+    <!-- ============== SoC CONTAINER (Stage 1 reveal 1) ============== -->
+    <g id="g-soc" class="reveal" data-stage-min="1" data-order="1">
+      <rect x="240" y="160" width="1440" height="660" rx="10" ry="10" class="blk-soc" />
+      <text x="260" y="195" class="label-bold" fill="#2c5282">Network Processor SoC — one FPGA</text>
+    </g>
+
+    <!-- ============== ARM CPU block (Stage 1 reveal 2) ============== -->
+    <g id="g-arm" class="reveal" data-stage-min="1" data-order="2">
+      <rect id="arm-rect" x="540" y="230" width="400" height="150" rx="8" class="blk-arm" />
+      <text x="555" y="260" class="label-bold" fill="#553c9a">ARM CPU</text>
+      <!-- 4 thread strips inside -->
+      <g>
+        <rect id="thread-T0" x="555" y="285" width="370" height="14" rx="3" fill="#d6bcfa" stroke="#6b46c1" stroke-width="1" />
+        <text x="565" y="296" class="mono" font-size="11" fill="#44337a">T0</text>
+        <rect x="555" y="305" width="370" height="14" rx="3" fill="#d6bcfa" stroke="#6b46c1" stroke-width="1" opacity="0.7" />
+        <text x="565" y="316" class="mono" font-size="11" fill="#44337a">T1</text>
+        <rect x="555" y="325" width="370" height="14" rx="3" fill="#d6bcfa" stroke="#6b46c1" stroke-width="1" opacity="0.7" />
+        <text x="565" y="336" class="mono" font-size="11" fill="#44337a">T2</text>
+        <rect x="555" y="345" width="370" height="14" rx="3" fill="#d6bcfa" stroke="#6b46c1" stroke-width="1" opacity="0.7" />
+        <text x="565" y="356" class="mono" font-size="11" fill="#44337a">T3</text>
+      </g>
+      <text x="555" y="400" class="label-sm">4 threads · fine-grained round-robin</text>
+    </g>
+
+    <!-- ============== Convertible FIFO (Stage 1 reveal 3) ============== -->
+    <g id="g-fifo" class="reveal" data-stage-min="1" data-order="3">
+      <rect id="fifo-rect" x="540" y="460" width="560" height="140" rx="8" class="blk-fifo" />
+      <text x="820" y="525" class="label-bold" font-size="28" fill="#22543d" text-anchor="middle">Convertible FIFO</text>
+      <text x="820" y="558" class="label" font-size="18" text-anchor="middle">dual-port 256 × 72 bit BRAM</text>
+      <!-- Port A label (top-left interior) -->
+      <text x="555" y="478" class="mono" font-size="11" font-style="italic" fill="#22543d">Port A</text>
+      <!-- Port A structural arrow exiting left -->
+      <line x1="540" y1="530" x2="430" y2="530" class="arrow-struct" marker-end="url(#arrowStruct)" />
+      <text x="425" y="515" class="label-italic-sm" font-style="italic" fill="#718096" text-anchor="end">Port A → NetFPGA</text>
+      <text x="425" y="532" class="label-italic-sm" font-style="italic" fill="#718096" text-anchor="end">data path (always-on)</text>
+      <!-- Port B label (top-right interior) -->
+      <text x="1075" y="478" class="mono" font-size="11" font-style="italic" fill="#22543d" text-anchor="end">Port B</text>
+    </g>
+
+    <!-- ============== Port B mux pictogram (Stage 1 reveal 4) ============== -->
+    <g id="g-mux" class="reveal" data-stage-min="1" data-order="4">
+      <!-- 3:1 mux trapezoid: right edge tall (130 px), left edge short (60 px). x: 1110..1165, y: 465..595 -->
+      <polygon points="1165,465 1165,595 1110,565 1110,500" fill="#edf2f7" stroke="#2c5282" stroke-width="1" />
+      <text x="1158" y="490" class="mono" font-size="12" fill="#1a365d" text-anchor="end">PCI</text>
+      <text x="1158" y="535" class="mono" font-size="12" fill="#1a365d" text-anchor="end">ARM</text>
+      <text x="1158" y="580" class="mono" font-size="12" fill="#1a365d" text-anchor="end">DMA</text>
+      <!-- italic tag above the mux -->
+      <text x="1100" y="450" class="label-italic-sm" font-style="italic" fill="#718096" text-anchor="start">selected by Mode reg</text>
+      <!-- short heavy arrow from mux left edge into FIFO right edge at y=530 -->
+      <line id="mux-to-fifo" x1="1110" y1="530" x2="1100" y2="530" class="arrow-active" marker-end="url(#arrowActive)" />
+    </g>
+
+    <!-- ============== FIFO_MODE register footnote panel (Stage 1 reveal 5) ============== -->
+    <g id="g-mode-reg" class="reveal" data-stage-min="1" data-order="5">
+      <rect x="540" y="615" width="380" height="80" rx="6" class="blk-panel" />
+      <text x="555" y="638" class="label-bold" font-size="14">FIFO_MODE register</text>
+      <text id="mode-line0" x="555" y="657" class="mono typeline" font-size="12" fill="#1a365d">0 = packet forwarding (Port B → PCI)</text>
+      <text id="mode-line1" x="555" y="673" class="mono typeline" font-size="12" fill="#1a365d">1 = ARM CPU drives Port B</text>
+      <text id="mode-line2" x="555" y="689" class="mono typeline" font-size="12" fill="#1a365d">2 = DMA engine drives Port B</text>
+      <!-- faint structural line: connect panel title to "selected by Mode reg" tag -->
+      <path d="M 700 615 C 800 530, 950 470, 1100 450" stroke="#cbd5e0" stroke-width="1" fill="none" stroke-dasharray="2 4" />
+    </g>
+
+    <!-- ============== DMA engine block (Stage 1 reveal 6) ============== -->
+    <g id="g-dma" class="reveal" data-stage-min="1" data-order="6">
+      <rect id="dma-rect" x="1180" y="480" width="160" height="100" rx="8" class="blk-dma" />
+      <text x="1260" y="525" class="label-bold" fill="#744210" text-anchor="middle">DMA</text>
+      <text x="1260" y="548" class="label-sm" text-anchor="middle">engine</text>
+      <text x="1260" y="600" class="label-italic-sm" font-style="italic" fill="#718096" text-anchor="middle">1 word / cycle, pipelined</text>
+    </g>
+
+    <!-- ============== GPU block (Stage 1 reveal 7) ============== -->
+    <g id="g-gpu" class="reveal" data-stage-min="1" data-order="7">
+      <rect id="gpu-rect" x="1380" y="360" width="260" height="400" rx="8" class="blk-gpu" />
+      <text x="1395" y="385" class="label-bold" fill="#7b341e">GPU</text>
+      <text x="1635" y="385" class="label-italic-sm" font-style="italic" fill="#7b341e" text-anchor="end">4 SIMD · BF16/INT16</text>
+      <text x="1635" y="403" class="mono" font-size="12" fill="#7b341e" text-anchor="end">1024-word IMEM · 1024-word DMEM</text>
+
+      <!-- DMEM mini -->
+      <rect id="dmem-rect" x="1400" y="410" width="100" height="50" rx="4" fill="#fff7ed" stroke="#c05621" stroke-width="1.5" />
+      <text x="1450" y="441" class="mono" font-size="13" fill="#7b341e" text-anchor="middle">DMEM</text>
+      <!-- DMEM word-slot tick marks (filled in Stage 3) -->
+      <g id="dmem-slots">
+        <!-- 11 tick marks, 8 px wide each, 1 px gap, drawn at y=454, starting x=1402 -->
+      </g>
+
+      <!-- IMEM mini -->
+      <rect id="imem-rect" x="1520" y="410" width="100" height="50" rx="4" fill="#fff7ed" stroke="#c05621" stroke-width="1.5" />
+      <text x="1570" y="441" class="mono" font-size="13" fill="#7b341e" text-anchor="middle">IMEM</text>
+
+      <!-- SIMD lanes 1400..1620, y 490..650, 4 columns ~55 px each -->
+      <g id="simd-lanes">
+        <rect class="lane" id="lane-L0" x="1400" y="490" width="55" height="160" fill="#feebc8" stroke="#c05621" stroke-width="1" opacity="0.55" />
+        <text x="1427" y="505" class="mono" font-size="12" fill="#7b341e" text-anchor="middle">L0</text>
+        <rect class="lane" id="lane-L1" x="1455" y="490" width="55" height="160" fill="#feebc8" stroke="#c05621" stroke-width="1" opacity="0.55" />
+        <text x="1482" y="505" class="mono" font-size="12" fill="#7b341e" text-anchor="middle">L1</text>
+        <rect class="lane" id="lane-L2" x="1510" y="490" width="55" height="160" fill="#feebc8" stroke="#c05621" stroke-width="1" opacity="0.55" />
+        <text x="1537" y="505" class="mono" font-size="12" fill="#7b341e" text-anchor="middle">L2</text>
+        <rect class="lane" id="lane-L3" x="1565" y="490" width="55" height="160" fill="#feebc8" stroke="#c05621" stroke-width="1" opacity="0.55" />
+        <text x="1592" y="505" class="mono" font-size="12" fill="#7b341e" text-anchor="middle">L3</text>
+      </g>
+
+      <!-- Layer-flow pill row at y=660..685 -->
+      <g id="layer-pills">
+        <rect class="layer-pill" id="lp-11" x="1400" y="662" width="46" height="20" rx="9" />
+        <text x="1423" y="676" class="mono" font-size="11" fill="#2c5282" text-anchor="middle">11 in</text>
+        <text x="1462" y="676" class="mono" font-size="12" fill="#4a5568" text-anchor="middle">→</text>
+        <rect class="layer-pill" id="lp-16" x="1480" y="662" width="36" height="20" rx="9" />
+        <text x="1498" y="676" class="mono" font-size="11" fill="#2c5282" text-anchor="middle">16</text>
+        <text x="1528" y="676" class="mono" font-size="12" fill="#4a5568" text-anchor="middle">→</text>
+        <rect class="layer-pill" id="lp-8" x="1544" y="662" width="36" height="20" rx="9" />
+        <text x="1562" y="676" class="mono" font-size="11" fill="#2c5282" text-anchor="middle">8</text>
+        <text x="1588" y="676" class="mono" font-size="12" fill="#4a5568" text-anchor="middle">→</text>
+        <rect class="layer-pill" id="lp-2" x="1600" y="662" width="40" height="20" rx="9" />
+        <text x="1620" y="676" class="mono" font-size="11" fill="#2c5282" text-anchor="middle">2 out</text>
+      </g>
+
+      <!-- Pipeline 6 stage pills at y=700..745 -->
+      <g id="pipe-pills">
+        <rect class="pipe-pill" id="pp-IF"  x="1400" y="708" width="36" height="22" rx="9" />
+        <text x="1418" y="723" class="mono" font-size="11" fill="#2c5282" text-anchor="middle">IF</text>
+        <text x="1440" y="723" class="mono" font-size="11" fill="#4a5568">→</text>
+        <rect class="pipe-pill" id="pp-ID"  x="1452" y="708" width="36" height="22" rx="9" />
+        <text x="1470" y="723" class="mono" font-size="11" fill="#2c5282" text-anchor="middle">ID</text>
+        <text x="1492" y="723" class="mono" font-size="11" fill="#4a5568">→</text>
+        <rect class="pipe-pill" id="pp-EX1" x="1504" y="708" width="36" height="22" rx="9" />
+        <text x="1522" y="723" class="mono" font-size="10" fill="#2c5282" text-anchor="middle">EX1</text>
+        <text x="1544" y="723" class="mono" font-size="11" fill="#4a5568">→</text>
+        <rect class="pipe-pill" id="pp-EX2" x="1556" y="708" width="36" height="22" rx="9" />
+        <text x="1574" y="723" class="mono" font-size="10" fill="#2c5282" text-anchor="middle">EX2</text>
+        <text x="1597" y="723" class="mono" font-size="11" fill="#4a5568">→</text>
+        <rect class="pipe-pill" id="pp-EX3" x="1604" y="708" width="32" height="22" rx="9" />
+        <text x="1620" y="723" class="mono" font-size="10" fill="#2c5282" text-anchor="middle">EX3</text>
+      </g>
+      <text x="1518" y="753" class="mono" font-size="10" fill="#4a5568" text-anchor="middle">IF → ID → EX1 → EX2 → EX3 → WB</text>
+
+      <!-- Cycle counter top-right inside GPU -->
+      <text id="cycle-counter" x="1630" y="540" class="mono" font-size="14" fill="#7b341e" text-anchor="end" style="font-variant-numeric: tabular-nums;">0 / 732 cycles</text>
+      <text id="cycle-caption" x="1630" y="558" class="label-italic-sm" font-style="italic" fill="#718096" text-anchor="end" opacity="0">732 cy · with BCAST · Beat 4 covers the design</text>
+    </g>
+
+    <!-- ============== Two control planes tag (Stage 1 reveal 11) ============== -->
+    <g id="g-control-planes" class="reveal" data-stage-min="1" data-order="11">
+      <text x="760" y="795" class="label-italic-sm" font-style="italic" fill="#718096" font-size="14" text-anchor="middle">Two control planes — PCI bus + ARM alias window 0xF0–0xFF</text>
+    </g>
+
+    <!-- ============== PACKET GLYPH (Stage 2+) ============== -->
+    <g id="g-packet" opacity="0">
+      <rect id="packet-rect" x="-40" y="520" width="28" height="20" rx="5" class="packet" />
+    </g>
+
+    <!-- ============== STAGE 2 ELEMENTS ============== -->
+    <!-- ARM -> FIFO poll+setup arrow -->
+    <g id="g-arm-fifo-arrow" class="reveal" data-stage-min="2" data-order="2">
+      <line id="arm-fifo-line" x1="740" y1="380" x2="740" y2="460" class="arrow-active" marker-end="url(#arrowActive)" />
+      <text x="755" y="430" class="label-italic" font-style="italic" fill="#4a5568">poll + setup</text>
+    </g>
+
+    <!-- TopLeft panel slot (Stage 2 + reused Stage 4 + Stage 5) -->
+    <g id="g-topleft-panel" class="reveal" data-stage-min="2" data-order="3">
+      <rect x="260" y="200" width="280" height="220" rx="6" class="blk-panel" />
+      <text id="tlp-title" x="275" y="226" class="label-bold" font-size="16">FIFO BRAM — incoming</text>
+      <g id="tlp-lines"></g>
+    </g>
+
+    <!-- ARM Right panel (Stage 2 + reused Stage 5) -->
+    <g id="g-armright-panel" class="reveal" data-stage-min="2" data-order="4">
+      <rect x="950" y="240" width="220" height="140" rx="6" class="blk-panel" />
+      <text id="arp-title" x="965" y="265" class="label-bold" font-size="16">T0 (orchestrator)</text>
+      <g id="arp-lines"></g>
+    </g>
+
+    <!-- ============== STAGE 3 ELEMENTS ============== -->
+    <!-- Below-DMA panel (Stage 3 + reused Stage 5) -->
+    <g id="g-belowdma-panel" class="reveal" data-stage-min="3" data-order="1">
+      <rect x="1180" y="610" width="160" height="160" rx="6" class="blk-panel" />
+      <text id="bdma-title" x="1188" y="630" class="label-bold" font-size="12">DMA program (T0 writes)</text>
+      <g id="bdma-lines"></g>
+    </g>
+
+    <!-- FIFO -> DMA -> GPU DMEM flow arrows (active during stage 3) -->
+    <g id="g-flow-in" class="reveal" data-stage-min="3" data-order="2">
+      <!-- FIFO right (~1100) to DMA left (1180), then DMA right (1340) to DMEM left (1400). -->
+      <line id="flow-fifo-dma" x1="1100" y1="530" x2="1180" y2="530" stroke="#2d3748" stroke-width="3" fill="none" class="flow-dash" marker-end="url(#arrowActive)" />
+      <line id="flow-dma-dmem" x1="1340" y1="530" x2="1400" y2="450" stroke="#2d3748" stroke-width="3" fill="none" class="flow-dash" marker-end="url(#arrowActive)" />
+      <text x="1370" y="495" class="label-italic" font-size="13" font-style="italic" fill="#2d3748" text-anchor="middle">11 BF16 · {x,x,x,x}</text>
+    </g>
+
+    <!-- ============== STAGE 4 ELEMENTS ============== -->
+    <g id="g-verdict-badge" class="reveal" data-stage-min="4" data-order="2">
+      <rect x="1380" y="240" width="220" height="80" rx="6" class="blk-panel" />
+      <text x="1395" y="265" class="label-bold" font-size="14">verdict</text>
+      <text x="1395" y="290" class="mono" font-size="14" fill="#1a365d">normal:  −5.50</text>
+      <text x="1395" y="308" class="mono" font-size="14" fill="#1a365d">attack:  +8.81  <tspan font-style="italic" fill="#c53030">← argmax</tspan></text>
+      <text x="1395" y="332" class="label-italic-sm" font-style="italic" fill="#718096">real values from a NetFPGA attack run</text>
+    </g>
+
+    <!-- ============== STAGE 5 ELEMENTS ============== -->
+    <g id="g-flow-out" class="reveal" data-stage-min="5" data-order="2">
+      <!-- GPU DMEM left (1400) -> DMA right (1340) -->
+      <line id="flow-dmem-dma" x1="1400" y1="450" x2="1340" y2="530" stroke="#2d3748" stroke-width="3" fill="none" class="flow-dash-rev" marker-end="url(#arrowActive)" />
+      <!-- DMA left (1180) -> FIFO right (1100) -->
+      <line id="flow-dma-fifo" x1="1180" y1="530" x2="1100" y2="530" stroke="#2d3748" stroke-width="3" fill="none" class="flow-dash-rev" marker-end="url(#arrowActive)" />
+      <text x="1240" y="500" class="label-italic" font-size="14" font-style="italic" fill="#2d3748" text-anchor="middle">2 BF16 logits</text>
+    </g>
+
+    <!-- ============== OFFLINE INSET (upper right, Stage 1 reveal 9) ============== -->
+    <!-- placed late in SVG so dashed purple arrows render on top of the SoC body -->
+    <g id="g-offline" class="reveal offline" data-stage-min="1" data-order="9">
+      <rect x="1700" y="60"  width="200" height="60" rx="6" class="blk-data" />
+      <text x="1800" y="95" class="mono" font-size="14" text-anchor="middle" fill="#2d3748">weights (BF16)</text>
+      <rect x="1700" y="140" width="200" height="60" rx="6" class="blk-data" />
+      <text x="1800" y="175" class="mono" font-size="14" text-anchor="middle" fill="#2d3748">program (hex)</text>
+      <!-- Dashed purple arrows: weights (bottom y=120) -> DMEM (1450,410); program (bottom y=200) -> IMEM (1570,410) -->
+      <path d="M 1750 120 C 1620 220, 1500 320, 1455 410" class="arrow-dashed-purple" marker-end="url(#arrowPurple)" />
+      <path d="M 1830 200 C 1700 290, 1620 350, 1575 410" class="arrow-dashed-purple" marker-end="url(#arrowPurple)" />
+      <text x="1640" y="248" class="label-italic" font-style="italic" fill="#6b46c1" text-anchor="middle">loaded once at startup</text>
+    </g>
+
+    <g id="g-arm-swap-callout" class="reveal" data-stage-min="5" data-order="5">
+      <text x="950" y="400" class="label-italic-sm" font-style="italic" fill="#4a5568" font-size="14" text-anchor="start">swap MAC + IP src ↔ dst, write UDP ports</text>
+    </g>
+
+  </svg>
+
+  <!-- Subtitles -->
+  <div id="subtitleWrap">
+    <div class="sub" data-stage="1">Convertible FIFO = 1 BRAM, 3 accessors — Port B muxed by FIFO_MODE register</div>
+    <div class="sub" data-stage="2">ARM polls FIFO_STATUS · sets FIFO_MODE = 2 · hands Port B to DMA</div>
+    <div class="sub" data-stage="3">4 register writes · DMA streams 11 BF16 features into GPU DMEM, 1 word/cycle</div>
+    <div class="sub" data-stage="4">GPU runs the 11→16→8→2 ANN in 732 cycles · 2 BF16 logits written to DMEM</div>
+    <div class="sub" data-stage="5">Logits → FIFO · ARM swaps src/dst headers · verdict packet egresses</div>
+  </div>
+
+  <!-- Controls -->
+  <div id="controls">
+    <button id="btn-prev">← Previous</button>
+    <button id="btn-play">▶ Play</button>
+    <button id="btn-next">Next →</button>
+  </div>
+
+</div></div>
+
+<script>
+/* ---------- Stage fitting ---------- */
+function fit() {
+  const s = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+  document.getElementById('stage').style.transform = 'translate(-50%, -50%) scale(' + s + ')';
+}
+window.addEventListener('resize', fit);
+fit();
+
+/* ---------- Query params ---------- */
+const qs = new URLSearchParams(location.search);
+if (qs.get('clean') === '1') document.body.classList.add('clean');
+const STAGE_DURATIONS = [
+  parseInt(qs.get('s1') || '42000', 10),
+  parseInt(qs.get('s2') || '32000', 10),
+  parseInt(qs.get('s3') || '32000', 10),
+  parseInt(qs.get('s4') || '32000', 10),
+  parseInt(qs.get('s5') || '32000', 10),
+];
+
+/* ---------- Helpers ---------- */
+function $(s, r=document) { return r.querySelector(s); }
+function $$(s, r=document) { return Array.from(r.querySelectorAll(s)); }
+function show(el)   { if (el) { el.classList.add('show'); el.classList.remove('fade-out'); } }
+function hide(el)   { if (el) { el.classList.remove('show'); } }
+function fadeOut(el){ if (el) { el.classList.add('fade-out'); } }
+
+/* SVG helper: create an SVG element with attrs */
+function svgEl(tag, attrs) {
+  const e = document.createElementNS('http://www.w3.org/2000/svg', tag);
+  if (attrs) for (const k in attrs) e.setAttribute(k, attrs[k]);
+  return e;
+}
+
+/* ---------- Stage state ---------- */
+let currentStage = 0; // 0 = nothing, 1..5 = stage N completed
+let playing = false;
+let stageTimers = [];
+let autoTimer = null;
+let cycleAnim = null;
+let pipeAnim = null;
+let layerAnim = null;
+let stageStartTime = 0;
+let progressTimer = null;
+
+function clearStageTimers() {
+  stageTimers.forEach(t => clearTimeout(t));
+  stageTimers = [];
+}
+function tlater(fn, ms) {
+  const t = setTimeout(fn, ms);
+  stageTimers.push(t);
+  return t;
+}
+
+/* ---------- Type-out a panel's monospace body lines into a <g> ---------- */
+function fillPanelLines(gId, lines, startX, startY, lineHeight=18, fontSize=14) {
+  const g = document.getElementById(gId);
+  if (!g) return;
+  g.innerHTML = '';
+  lines.forEach((ln, i) => {
+    const t = svgEl('text', {
+      x: startX, y: startY + i * lineHeight,
+      class: 'mono typeline',
+      'font-size': fontSize,
+      fill: ln.color || '#1a365d',
+    });
+    if (ln.italic) t.setAttribute('font-style', 'italic');
+    if (ln.weight) t.setAttribute('font-weight', ln.weight);
+    t.textContent = ln.text;
+    g.appendChild(t);
+  });
+}
+function revealPanelLines(gId, perLine=250) {
+  const g = document.getElementById(gId);
+  if (!g) return;
+  const lines = g.querySelectorAll('.typeline');
+  lines.forEach((ln, i) => {
+    tlater(() => ln.classList.add('show'), 250 + i * perLine);
+  });
+}
+function hidePanelLines(gId) {
+  const g = document.getElementById(gId);
+  if (!g) return;
+  g.querySelectorAll('.typeline').forEach(l => l.classList.remove('show'));
+}
+
+/* ---------- Build DMEM word-slot ticks (filled in Stage 3) ---------- */
+const dmemSlotsG = $('#dmem-slots');
+for (let i = 0; i < 11; i++) {
+  const r = svgEl('rect', {
+    x: 1402 + i * 8.6, y: 451, width: 7, height: 6, rx: 1,
+    fill: '#c05621', opacity: 0,
+  });
+  r.classList.add('dmem-slot');
+  dmemSlotsG.appendChild(r);
+}
+
+/* ---------- Subtitle ---------- */
+function showSubtitle(n) {
+  $$('#subtitleWrap .sub').forEach(s => s.classList.remove('show'));
+  const s = $(`#subtitleWrap .sub[data-stage="${n}"]`);
+  if (s) show(s);
+}
+
+/* ---------- Reset / hide all transient state to a clean before-stage-1 state ---------- */
+function hideAllReveals() {
+  $$('.reveal').forEach(el => {
+    el.classList.remove('show');
+    el.classList.remove('fade-out');
+  });
+  // Hide panels' inner typed lines
+  hidePanelLines('tlp-lines');
+  hidePanelLines('arp-lines');
+  hidePanelLines('bdma-lines');
+  // Mode-reg lines (typeline) inside the mode-reg group
+  $$('#g-mode-reg .typeline').forEach(t => t.classList.remove('show'));
+  // Mux input labels - reset opacity for stage 1 typeout (they're plain text, just ensure visible)
+  // Subtitle off
+  $$('#subtitleWrap .sub').forEach(s => s.classList.remove('show'));
+  // DMEM slots
+  $$('.dmem-slot').forEach(r => r.setAttribute('opacity', '0'));
+  // Packet hide
+  $('#g-packet').setAttribute('opacity', '0');
+  $('#packet-rect').setAttribute('x', '-40');
+  $('#packet-rect').setAttribute('y', '520');
+  // Lane pulses off
+  $$('#simd-lanes .lane').forEach(l => l.classList.remove('lane-pulse'));
+  // Pipe pulse
+  if (pipeAnim) { clearInterval(pipeAnim); pipeAnim = null; }
+  $$('.pipe-pill').forEach(p => p.classList.remove('pipe-on'));
+  // Layer wave
+  if (layerAnim) { clearInterval(layerAnim); layerAnim = null; }
+  $$('.layer-pill').forEach(p => p.classList.remove('layer-on'));
+  // Cycle counter
+  if (cycleAnim) { cancelAnimationFrame(cycleAnim); cycleAnim = null; }
+  $('#cycle-counter').textContent = '0 / 732 cycles';
+  $('#cycle-caption').setAttribute('opacity', '0');
+  // Block glows
+  ['arm-rect','fifo-rect','dma-rect','gpu-rect'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.remove('glow');
+  });
+  // T0 hi
+  $('#thread-T0').setAttribute('fill', '#d6bcfa');
+  // SoC final glow
+  $('#g-soc').classList.remove('final-glow');
+  // Counter
+  $('#stageCounter').textContent = 'Stage 1 of 5';
+}
+
+/* ---------- STAGE 1: full chip reveal ---------- */
+function runStage1(animated=true) {
+  // Reveal all data-stage-min="1" elements in their order, ~400ms apart
+  const items = $$('.reveal[data-stage-min="1"]').sort((a,b) => +a.dataset.order - +b.dataset.order);
+  const STEP = animated ? 400 : 0;
+  items.forEach((el, i) => {
+    tlater(() => show(el), i * STEP);
+  });
+  // After mux is shown (order 4, ~1200ms), the FIFO_MODE panel lines fade in
+  tlater(() => {
+    $$('#g-mode-reg .typeline').forEach((t, i) => {
+      tlater(() => t.classList.add('show'), 250 + i * 250);
+    });
+  }, animated ? 4 * STEP + 200 : 0);
+  // Subtitle
+  tlater(() => showSubtitle(1), animated ? 800 : 0);
+}
+
+/* ---------- STAGE 2: packet arrives, ARM orchestrates ---------- */
+function runStage2(animated=true) {
+  // Ensure all stage-1 elements present
+  $$('.reveal[data-stage-min="1"]').forEach(show);
+  $$('#g-mode-reg .typeline').forEach(t => t.classList.add('show'));
+  showSubtitle(2);
+
+  // 1) Packet glyph slides from off-canvas-left through inset and into FIFO (~1.5s)
+  const pkt = $('#packet-rect');
+  const pktG = $('#g-packet');
+  pktG.setAttribute('opacity', '1');
+  pkt.setAttribute('x', '-40');
+  // Animate to FIFO interior (~x=820 inside FIFO)
+  if (animated) {
+    const start = performance.now();
+    const dur = 1500;
+    const startX = -40, endX = 820;
+    function step(now) {
+      const t = Math.min(1, (now - start) / dur);
+      const e = 1 - Math.pow(1 - t, 3);
+      pkt.setAttribute('x', startX + (endX - startX) * e);
+      if (t < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  } else {
+    pkt.setAttribute('x', '820');
+  }
+
+  // 2) TopLeft Panel: "FIFO BRAM — incoming"
+  tlater(() => {
+    $('#tlp-title').textContent = 'FIFO BRAM — incoming';
+    fillPanelLines('tlp-lines', [
+      { text: '[0]      NF2.1 header' },
+      { text: '[1..6]   Eth + IP + UDP + pad' },
+      { text: '[7..17]  11 features (BF16, repl.)', italic: true, color: '#2c5282' },
+      { text: '[18]     trailer' },
+    ], 275, 252, 22, 14);
+    show($('#g-topleft-panel'));
+    revealPanelLines('tlp-lines');
+  }, 1700);
+
+  // 3) ARM -> FIFO arrow appears and pulses
+  tlater(() => {
+    show($('#g-arm-fifo-arrow'));
+    const line = $('#arm-fifo-line');
+    line.classList.add('pulse-ring');
+    setTimeout(() => line.classList.remove('pulse-ring'), 1000);
+  }, 3200);
+
+  // 4) ARM block glows; T0 highlights
+  tlater(() => {
+    $('#arm-rect').classList.add('glow');
+    $('#thread-T0').setAttribute('fill', '#b794f4');
+  }, 3800);
+
+  // 5) ARM Right slot: "T0 (orchestrator)"
+  tlater(() => {
+    $('#arp-title').textContent = 'T0 (orchestrator)';
+    fillPanelLines('arp-lines', [
+      { text: 'read  FIFO_STATUS' },
+      { text: 'write FIFO_MODE := 2' },
+    ], 965, 295, 22, 14);
+    show($('#g-armright-panel'));
+    revealPanelLines('arp-lines');
+  }, 4500);
+}
+
+/* ---------- STAGE 3: DMA streams features to GPU ---------- */
+function runStage3(animated=true) {
+  showSubtitle(3);
+  $('#arm-rect').classList.remove('glow');
+
+  // 1) ARM pulses once
+  tlater(() => {
+    const r = $('#arm-rect');
+    r.classList.add('pulse-ring');
+    setTimeout(() => r.classList.remove('pulse-ring'), 1000);
+  }, 200);
+
+  // 2) Below-DMA panel: DMA-in register programming
+  tlater(() => {
+    $('#bdma-title').textContent = 'DMA program (T0 writes)';
+    fillPanelLines('bdma-lines', [
+      { text: 'DMA_FIFO_ADDR := 0x07' },
+      { text: 'DMA_GPU_ADDR  := 0x00' },
+      { text: 'DMA_LENGTH    := 11' },
+      { text: 'DMA_CTRL      := 0x01', color: '#2c5282' },
+      { text: '  (start · FIFO→GPU)', color: '#4a5568' },
+      { text: 'poll DMA_CTRL[0]', italic: true, color: '#4a5568' },
+      { text: 'until clear', italic: true, color: '#4a5568' },
+    ], 1188, 648, 16, 11);
+    show($('#g-belowdma-panel'));
+    revealPanelLines('bdma-lines');
+  }, 600);
+
+  // 3) Flow arrows appear (already styled with flow-dash)
+  tlater(() => {
+    show($('#g-flow-in'));
+  }, 2700);
+
+  // 4) DMEM word-slot ticks fill in (~80ms each)
+  tlater(() => {
+    const ticks = $$('.dmem-slot');
+    ticks.forEach((t, i) => {
+      tlater(() => t.setAttribute('opacity', '1'), i * 80);
+    });
+  }, 3300);
+
+  // 5) IMEM brief glow
+  tlater(() => {
+    const r = $('#imem-rect');
+    r.classList.add('pulse-ring');
+    setTimeout(() => r.classList.remove('pulse-ring'), 1000);
+  }, 4500);
+}
+
+/* ---------- STAGE 4: GPU classifies ---------- */
+function runStage4(animated=true) {
+  showSubtitle(4);
+
+  // 1) TopLeft panel reused for GPU ISA reference card
+  tlater(() => {
+    fadeOut($('#g-topleft-panel'));
+    tlater(() => {
+      $('#g-topleft-panel').classList.remove('fade-out');
+      $('#tlp-title').textContent = 'GPU ISA — 12 opcodes';
+      fillPanelLines('tlp-lines', [
+        { text: 'LD    ST    ADD   SUB' },
+        { text: 'MUL   FMA   RELU  MOV' },
+        { text: 'ADDI  MOVI  BLT   BGE' },
+        { text: 'HALT  BCAST (custom)', italic: true, color: '#c05621' },
+        { text: '' },
+        { text: '16 × 64-bit regs · 6-stage pipe' },
+        { text: 'IMEM 1024 w · DMEM 1024 w' },
+      ], 275, 250, 21, 13);
+      show($('#g-topleft-panel'));
+      revealPanelLines('tlp-lines', 150);
+    }, 250);
+  }, 200);
+
+  // 2) Lanes light up in stagger then pulse
+  tlater(() => {
+    ['L0','L1','L2','L3'].forEach((n, i) => {
+      tlater(() => $(`#lane-${n}`).classList.add('lane-pulse'), i * 200);
+    });
+  }, 1600);
+
+  // 3) Pipeline rolling highlight
+  const pipeOrder = ['pp-IF','pp-ID','pp-EX1','pp-EX2','pp-EX3'];
+  tlater(() => {
+    let i = 0;
+    pipeAnim = setInterval(() => {
+      $$('.pipe-pill').forEach(p => p.classList.remove('pipe-on'));
+      $(`#${pipeOrder[i % pipeOrder.length]}`).classList.add('pipe-on');
+      i++;
+    }, 220);
+  }, 2200);
+
+  // 4) Layer-flow pill wave
+  const layerOrder = ['lp-11','lp-16','lp-8','lp-2'];
+  tlater(() => {
+    let i = 0;
+    layerAnim = setInterval(() => {
+      $$('.layer-pill').forEach(p => p.classList.remove('layer-on'));
+      $(`#${layerOrder[i % layerOrder.length]}`).classList.add('layer-on');
+      i++;
+    }, 800);
+  }, 2200);
+
+  // 5) Cycle counter animates 0 -> 732 over ~5s
+  tlater(() => {
+    const start = performance.now();
+    const dur = 5000;
+    const out = $('#cycle-counter');
+    function step(now) {
+      const t = Math.min(1, (now - start) / dur);
+      const e = 1 - Math.pow(1 - t, 3);
+      const v = Math.round(732 * e);
+      out.textContent = `${v} / 732 cycles`;
+      if (t < 1) cycleAnim = requestAnimationFrame(step);
+      else $('#cycle-caption').setAttribute('opacity', '1');
+    }
+    cycleAnim = requestAnimationFrame(step);
+  }, 3200);
+
+  // 6) Verdict badge appears toward end
+  tlater(() => {
+    show($('#g-verdict-badge'));
+  }, 9000);
+}
+
+/* ---------- STAGE 5: Response packet out ---------- */
+function runStage5(animated=true) {
+  showSubtitle(5);
+  // 1) ARM pulses (DMA-out programming)
+  tlater(() => {
+    const r = $('#arm-rect');
+    r.classList.add('pulse-ring');
+    setTimeout(() => r.classList.remove('pulse-ring'), 1000);
+  }, 200);
+
+  // Stop GPU animations (still pulsing lanes is fine, but pipe/layer can keep going)
+  // 2) Below-DMA panel reopens with DMA-out
+  tlater(() => {
+    fadeOut($('#g-belowdma-panel'));
+    tlater(() => {
+      $('#g-belowdma-panel').classList.remove('fade-out');
+      $('#bdma-title').textContent = 'DMA program (T0 writes)';
+      fillPanelLines('bdma-lines', [
+        { text: 'DMA_FIFO_ADDR := 0x0A' },
+        { text: 'DMA_GPU_ADDR  := 0x7E' },
+        { text: 'DMA_LENGTH    := 2' },
+        { text: 'DMA_CTRL      := 0x03', color: '#2c5282' },
+        { text: '  (start · GPU→FIFO)', color: '#4a5568' },
+        { text: 'poll DMA_CTRL[0]', italic: true, color: '#4a5568' },
+        { text: 'until clear', italic: true, color: '#4a5568' },
+      ], 1188, 648, 16, 11);
+      show($('#g-belowdma-panel'));
+      revealPanelLines('bdma-lines');
+    }, 250);
+  }, 600);
+
+  // 3) GPU -> DMA -> FIFO flow (reverse dashes)
+  tlater(() => {
+    show($('#g-flow-out'));
+    // Hide the inbound flow visually
+    fadeOut($('#g-flow-in'));
+  }, 3000);
+
+  // 4) TopLeft panel reused for response BRAM layout
+  tlater(() => {
+    fadeOut($('#g-topleft-panel'));
+    tlater(() => {
+      $('#g-topleft-panel').classList.remove('fade-out');
+      $('#tlp-title').textContent = 'FIFO BRAM — response';
+      fillPanelLines('tlp-lines', [
+        { text: '[0]       NF2.1 hdr (rewritten)' },
+        { text: '[1..6]    Eth+IP+UDP (src↔dst)' },
+        { text: '[10..11]  2 BF16 logits', italic: true, color: '#2c5282' },
+      ], 275, 254, 22, 14);
+      show($('#g-topleft-panel'));
+      revealPanelLines('tlp-lines');
+    }, 250);
+  }, 4500);
+
+  // 5) ARM Right panel reopens with response-framing snippet
+  tlater(() => {
+    fadeOut($('#g-armright-panel'));
+    tlater(() => {
+      $('#g-armright-panel').classList.remove('fade-out');
+      $('#arp-title').textContent = 'T0 (orchestrator)';
+      fillPanelLines('arp-lines', [
+        { text: 'rewrite BRAM[1..6] hdrs' },
+        { text: 'FIFO_MODE  := 1' },
+        { text: 'FIFO_DRAIN := 1' },
+      ], 965, 295, 22, 14);
+      show($('#g-armright-panel'));
+      revealPanelLines('arp-lines');
+    }, 250);
+  }, 6000);
+
+  // 6) ARM pulses again + swap callout
+  tlater(() => {
+    const r = $('#arm-rect');
+    r.classList.add('pulse-ring');
+    setTimeout(() => r.classList.remove('pulse-ring'), 1000);
+    show($('#g-arm-swap-callout'));
+  }, 8500);
+
+  // 7) Packet glyph glides right and exits — no strike-through, no badge
+  tlater(() => {
+    const pkt = $('#packet-rect');
+    const start = performance.now();
+    const dur = 1800;
+    const startX = parseFloat(pkt.getAttribute('x'));
+    const endX = 1950;
+    function step(now) {
+      const t = Math.min(1, (now - start) / dur);
+      const e = 1 - Math.pow(1 - t, 3);
+      pkt.setAttribute('x', startX + (endX - startX) * e);
+      if (t < 1) requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+  }, 11000);
+
+  // 8) Final soft full-diagram glow
+  tlater(() => {
+    $('#g-soc').classList.add('final-glow');
+    setTimeout(() => $('#g-soc').classList.remove('final-glow'), 1500);
+  }, 13500);
+}
+
+/* ---------- Stage orchestration ---------- */
+const STAGE_FNS = [runStage1, runStage2, runStage3, runStage4, runStage5];
+
+function setStage(n, animated=true) {
+  // n = 1..5; render the END STATE of every stage up to but not including n, then PLAY stage n
+  clearStageTimers();
+  hideAllReveals();
+  currentStage = n;
+  $('#stageCounter').textContent = `Stage ${n} of 5`;
+
+  // Apply end states of stages 1..(n-1) instantly, then play stage n animated.
+  for (let i = 1; i < n; i++) {
+    STAGE_FNS[i - 1](false);
+  }
+  // After non-animated previous stages, force-resolve all their timers
+  // (they were pushed to stageTimers with delays, so flush by clearing and re-applying instantly)
+  clearStageTimers();
+  // Apply previous-stage end states directly:
+  for (let i = 1; i < n; i++) applyStageEndState(i);
+
+  // Now play stage n animated.
+  STAGE_FNS[n - 1](animated);
+
+  // Reset progress
+  stageStartTime = performance.now();
+  if (progressTimer) clearInterval(progressTimer);
+  progressTimer = setInterval(updateProgress, 100);
+  updateProgress();
+}
+
+/* End-state for a stage when stepping into it without animation */
+function applyStageEndState(n) {
+  if (n === 1) {
+    $$('.reveal[data-stage-min="1"]').forEach(show);
+    $$('#g-mode-reg .typeline').forEach(t => t.classList.add('show'));
+    showSubtitle(1);
+  } else if (n === 2) {
+    // packet inside FIFO
+    $('#g-packet').setAttribute('opacity', '1');
+    $('#packet-rect').setAttribute('x', '820');
+    show($('#g-arm-fifo-arrow'));
+    $('#thread-T0').setAttribute('fill', '#b794f4');
+    // top-left + arm-right panels with Stage 2 content
+    $('#tlp-title').textContent = 'FIFO BRAM — incoming';
+    fillPanelLines('tlp-lines', [
+      { text: '[0]      NF2.1 header' },
+      { text: '[1..6]   Eth + IP + UDP + pad' },
+      { text: '[7..17]  11 features (BF16, repl.)', italic: true, color: '#2c5282' },
+      { text: '[18]     trailer' },
+    ], 275, 252, 22, 14);
+    show($('#g-topleft-panel'));
+    $$('#tlp-lines .typeline').forEach(l => l.classList.add('show'));
+    $('#arp-title').textContent = 'T0 (orchestrator)';
+    fillPanelLines('arp-lines', [
+      { text: 'read  FIFO_STATUS' },
+      { text: 'write FIFO_MODE := 2' },
+    ], 965, 295, 22, 14);
+    show($('#g-armright-panel'));
+    $$('#arp-lines .typeline').forEach(l => l.classList.add('show'));
+    showSubtitle(2);
+  } else if (n === 3) {
+    show($('#g-flow-in'));
+    $$('.dmem-slot').forEach(r => r.setAttribute('opacity', '1'));
+    $('#bdma-title').textContent = 'DMA program (T0 writes)';
+    fillPanelLines('bdma-lines', [
+      { text: 'DMA_FIFO_ADDR := 0x07' },
+      { text: 'DMA_GPU_ADDR  := 0x00' },
+      { text: 'DMA_LENGTH    := 11' },
+      { text: 'DMA_CTRL      := 0x01', color: '#2c5282' },
+      { text: '  (start · FIFO→GPU)', color: '#4a5568' },
+      { text: 'poll DMA_CTRL[0]', italic: true, color: '#4a5568' },
+      { text: 'until clear', italic: true, color: '#4a5568' },
+    ], 1188, 648, 16, 11);
+    show($('#g-belowdma-panel'));
+    $$('#bdma-lines .typeline').forEach(l => l.classList.add('show'));
+    showSubtitle(3);
+  } else if (n === 4) {
+    // Stage 4 end state: GPU ISA card in TopLeft, cycle counter at 732, verdict badge
+    $('#tlp-title').textContent = 'GPU ISA — 12 opcodes';
+    fillPanelLines('tlp-lines', [
+      { text: 'LD    ST    ADD   SUB' },
+      { text: 'MUL   FMA   RELU  MOV' },
+      { text: 'ADDI  MOVI  BLT   BGE' },
+      { text: 'HALT  BCAST (custom)', italic: true, color: '#c05621' },
+      { text: '' },
+      { text: '16 × 64-bit regs · 6-stage pipe' },
+      { text: 'IMEM 1024 w · DMEM 1024 w' },
+    ], 275, 250, 21, 13);
+    show($('#g-topleft-panel'));
+    $$('#tlp-lines .typeline').forEach(l => l.classList.add('show'));
+    $('#cycle-counter').textContent = '732 / 732 cycles';
+    $('#cycle-caption').setAttribute('opacity', '1');
+    show($('#g-verdict-badge'));
+    showSubtitle(4);
+  }
+}
+
+/* ---------- Progress bar ---------- */
+function updateProgress() {
+  if (currentStage < 1) return;
+  const bar = $('#progressBar');
+  if (!bar) return;
+  const dur = STAGE_DURATIONS[currentStage - 1];
+  const elapsed = performance.now() - stageStartTime;
+  const pct = Math.min(100, (elapsed / dur) * 100);
+  bar.style.width = pct + '%';
+}
+
+/* ---------- Autoplay ---------- */
+function startAutoplay() {
+  playing = true;
+  $('#btn-play').textContent = '⏸ Pause';
+  scheduleNext();
+}
+function pauseAutoplay() {
+  playing = false;
+  $('#btn-play').textContent = '▶ Play';
+  if (autoTimer) clearTimeout(autoTimer);
+}
+function scheduleNext() {
+  if (autoTimer) clearTimeout(autoTimer);
+  if (!playing) return;
+  if (currentStage >= 5) {
+    playing = false;
+    $('#btn-play').textContent = '▶ Replay';
+    return;
+  }
+  const dur = STAGE_DURATIONS[currentStage - 1] || 32000;
+  autoTimer = setTimeout(() => {
+    if (!playing) return;
+    setStage(currentStage + 1, true);
+    scheduleNext();
+  }, dur);
+}
+
+/* ---------- Controls ---------- */
+$('#btn-prev').addEventListener('click', () => {
+  pauseAutoplay();
+  if (currentStage <= 1) return;
+  setStage(currentStage - 1, false);
+  // Apply end-state of (now-)current stage instantly
+  applyStageEndState(currentStage);
+});
+$('#btn-next').addEventListener('click', () => {
+  pauseAutoplay();
+  if (currentStage >= 5) return;
+  setStage(currentStage + 1, true);
+});
+$('#btn-play').addEventListener('click', () => {
+  if (playing) { pauseAutoplay(); return; }
+  // If at end, rewind
+  if (currentStage >= 5) setStage(1, true);
+  else if (currentStage < 1) setStage(1, true);
+  startAutoplay();
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowLeft')  { e.preventDefault(); $('#btn-prev').click(); }
+  if (e.key === 'ArrowRight') { e.preventDefault(); $('#btn-next').click(); }
+  if (e.key === ' ')          { e.preventDefault(); $('#btn-play').click(); }
+});
+
+/* ---------- Init ---------- */
+setStage(1, true);
+</script>
+</body>
+</html>

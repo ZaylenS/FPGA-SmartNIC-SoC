@@ -1,0 +1,100 @@
+%-------------------------
+% Resume - Zilin Shao
+% Target: ASIC / RTL Design / Microarchitecture (New College Graduate) - v4
+% One-page LaTeX resume; compile with pdflatex
+%-------------------------
+\documentclass[letterpaper,10pt]{article}
+
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[left=0.45in,right=0.45in,top=0.45in,bottom=0.40in]{geometry}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage[hidelinks]{hyperref}
+\hypersetup{pdftitle={Zilin Shao - ASIC RTL Design Resume},pdfauthor={Zilin Shao}}
+\usepackage{array}
+\usepackage{microtype}
+\input{glyphtounicode}
+\pdfgentounicode=1
+
+\pagestyle{empty}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0pt}
+\setlength{\tabcolsep}{0pt}
+\renewcommand{\baselinestretch}{1.03}
+\urlstyle{same}
+
+\titleformat{\section}{\vspace{-2pt}\raggedright\large\bfseries}{}{0em}{\MakeUppercase}[\titlerule\vspace{-3pt}]
+\setlist[itemize]{leftmargin=14pt,labelsep=5pt,topsep=1.7pt,parsep=0.3pt,partopsep=0pt,itemsep=1.7pt}
+
+\newcommand{\resumeHeader}{%
+\begin{center}
+  {\LARGE\bfseries Zilin Shao} \\[2pt]
+  {\small\bfseries ASIC / RTL Design \enspace$|$\enspace CPU/GPU Microarchitecture \enspace$|$\enspace FPGA Prototyping} \\[3pt]
+  {\small Los Angeles, CA \enspace$|$\enspace Open to Relocation \enspace$|$\enspace
+  \href{mailto:zilinshaodev@gmail.com}{zilinshaodev@gmail.com} \enspace$|$\enspace
+  \href{https://github.com/zilindev}{github.com/zilindev}}
+\end{center}
+\vspace{-3pt}
+}
+
+\newcommand{\eduentry}[4]{%
+  \vspace{2pt}\textbf{#1}, #2 \hfill #3%
+  \if\relax\detokenize{#4}\relax
+    \par\vspace{-5pt}%
+  \else
+    \\[-1pt]{\small #4}\par\vspace{2pt}%
+  \fi
+}
+
+\newcommand{\entryheading}[4]{%
+  \vspace{3pt}\textbf{#1} \hfill #3 \\[-1pt]
+  {\small #2 \hfill #4}\vspace{1pt}
+}
+
+\newcommand{\projectheading}[3]{%
+  \vspace{3pt}\textbf{#1} \hfill #3 \\[-1pt]
+  {\small\textit{#2}}\vspace{1pt}
+}
+
+\newcommand{\skillrow}[2]{\textbf{#1} & #2 \\[2.5pt]}
+
+\begin{document}
+\resumeHeader
+
+\section{Education}
+\eduentry{M.S.\ in Computer Engineering}{University of Southern California}{May 2026}
+{Coursework: VLSI Design, Computer Architecture, Hardware Foundations of Machine Learning, Diagnosis and Design of Reliable Digital Systems}
+\eduentry{B.S.\ in Computer Science \& Mathematics}{The Ohio State University}{Aug. 2023}{}
+
+\section{Engineering Experience}
+\entryheading{AMD U45N / OpenNIC SmartNIC Bring-Up --- Faculty-Advised Engineering Project}{USC EE533 Lab Development}{May 2026 - Present}{Los Angeles, CA}
+\begin{itemize}
+  \item Implemented and integrated a host-visible SystemVerilog AXI-Lite register block in OpenNIC's 322\,MHz user-plugin logic; generated the bitstream/MCS, programmed the AMD Alveo U45N, and verified a deterministic BAR2 MMIO test covering signature/version, operand writes, XOR, sum, popcount, checksum, and status.
+  \item Documented a U45N/OpenNIC build-and-bring-up workflow for future EE533 students, preserving source versions, logs, and artifacts from RTL/XDC integration through Vivado synthesis/implementation, bitstream/MCS generation, programming, recovery, and post-route timing analysis; separately generated a pass-through-only build that met setup timing.
+  \item Programmed and brought up baseline OpenNIC on the SPHERE/MergeTB testbed; verified PCIe enumeration and Linux \texttt{onic} binding, then debugged link/RX/topology with \texttt{lspci}, \texttt{dmesg}, \texttt{ethtool}, counters, and LLDP evidence.
+\end{itemize}
+
+\section{Selected Projects}
+\projectheading{FPGA SmartNIC SoC: Custom CPU, BF16 SIMD GPU, DMA, and Inline ML-IDS}{Verilog, Python, Xilinx ISE, Icarus Verilog, Xilinx Virtex-II Pro FPGA}{Spring 2026}
+\begin{itemize}
+  \item Architected and implemented a heterogeneous FPGA network processor in Verilog for inline ML intrusion-detection inference, integrating a 4-thread, 5-stage 64-bit CPU decoding a restricted subset of 32-bit ARM encodings, a 6-stage 4-lane BF16 SIMD/FMA GPU, a DMA copy FSM, and a dual-port packet FIFO; the CPU rotated among four hardware threads in round-robin order, with a separate PC, register set, condition flags, and halt state for each thread.
+  \item Extended the custom GPU ISA and RTL with cross-lane \texttt{BCAST}; updated the assembler, repacked the IDS data-memory layout, and rewrote the inference program in custom assembly, reducing hardware-measured latency from 2,402 to 732 cycles (3.28$\times$), program length from 211 to 108 instructions, and the initialized GPU data-memory footprint from 383 to 128 64-bit words. Registered SIMD inputs to split a timing-sensitive BCAST/BF16 datapath.
+  \item Trained and deployed an 11-16-8-2 BF16 MLP for on-FPGA IDS inference over 11 pre-extracted network features, improving KDDTest+ benchmark accuracy from 75.50\% to 82.39\%; added a 117-instruction on-chip CPU orchestrator for packet polling, DMA/GPU control, result readback, header rewrite, and drain. Icarus Verilog testbenches exercised CPU, GPU, FIFO, DMA, and orchestrator behavior, and five on-board \texttt{BCAST} runs were bit-identical at 732 cycles.
+\end{itemize}
+
+\projectheading{Digital Circuit Fault Simulator and Automatic Test Pattern Generator}{C++11, Python, CMake, Linux}{Fall 2025}
+\begin{itemize}
+  \item In a three-person team, implemented logic simulation, word-parallel stuck-at fault simulation, standalone PODEM, and integrated test-pattern-generation components for ISCAS-85-derived circuits through c6288 (6,288 circuit lines; 7,744 reduced fault targets), packing up to 63 faulty scenarios per 64-bit pass.
+\end{itemize}
+
+\section{Technical Skills}
+\vspace{1pt}
+\begin{tabular}{@{}>{\bfseries\raggedright\arraybackslash}p{0.17\textwidth}@{\hspace{8pt}}>{\raggedright\arraybackslash}p{0.80\textwidth}@{}}
+\skillrow{Languages}{SystemVerilog, Verilog, C++, C, Python, Tcl, Bash}
+\skillrow{RTL / Arch.}{Microarchitecture, pipelined datapaths, computer arithmetic, performance/resource trade-offs, FSMs, round-robin scheduling, DMA, FIFOs, AXI-Lite, AXI-Stream, BRAM, custom ISA, BF16 FMA/SIMD GPU}
+\skillrow{Flow / Verification}{RTL simulation and testbenches, FPGA logic synthesis and implementation, timing-report analysis, critical-path debugging, XDC constraints, on-board hardware validation, fault simulation / ATPG}
+\skillrow{Tools / Platforms}{Vivado 2024.1, Xilinx ISE, Icarus Verilog, AMD Alveo U45N/OpenNIC, Xilinx Virtex-II Pro FPGA, Linux, Git, CMake}
+\end{tabular}
+\end{document}

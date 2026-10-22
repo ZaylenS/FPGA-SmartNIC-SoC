@@ -1,0 +1,159 @@
+========================================================================
+IDS training v2  (architecture fixed at 11 -> 16 -> 8 -> 2)
+========================================================================
+  log_bytes        = True
+  categorical      = True
+  optimizer        = adam
+  epochs           = 200
+  cosine schedule  = True
+  qat              = True
+  weight_decay     = 0
+  seeds            = 5
+========================================================================
+
+Building categorical maps from train file...
+  protocol_type      3 unique values
+  service           70 unique values
+  flag              11 unique values
+
+Loading train...
+  shape = (125973, 41)   normal=67343  attack=58630
+Loading test...
+  shape = (22544, 41)   normal=9711  attack=12833
+
+Log1p-transforming heavy-tailed columns: ['count', 'dst_bytes', 'dst_host_count', 'dst_host_srv_count', 'duration', 'hot', 'num_compromised', 'num_failed_logins', 'num_file_creations', 'num_root', 'src_bytes', 'srv_count']
+
+Selecting top 11 features by RF importance (n_estimators=200)...
+  selected:
+     1. serror_rate                    imp=0.0123
+     2. srv_serror_rate                imp=0.0168
+     3. dst_bytes                      imp=0.1665
+     4. src_bytes                      imp=0.1653
+     5. flag                           imp=0.0779
+     6. same_srv_rate                  imp=0.0739
+     7. diff_srv_rate                  imp=0.0486
+     8. dst_host_srv_count             imp=0.0467
+     9. dst_host_same_srv_rate         imp=0.0464
+    10. logged_in                      imp=0.0350
+    11. protocol_type                  imp=0.0344
+
+Min-max normalizing selected features to [0, 1]...
+
+Training 5 seed(s)...
+
+--- seed 1 (rng=42) ---
+  epoch   1: loss=0.2934  lr=0.00100  train=0.9637  bf16_test=0.7806
+  epoch  20: loss=0.0426  lr=0.00098  train=0.9838  bf16_test=0.7795
+  epoch  40: loss=0.0336  lr=0.00091  train=0.9893  bf16_test=0.7656
+  epoch  60: loss=0.0300  lr=0.00080  train=0.9905  bf16_test=0.7645
+  epoch  80: loss=0.0272  lr=0.00066  train=0.9911  bf16_test=0.7676
+  epoch 100: loss=0.0255  lr=0.00050  train=0.9914  bf16_test=0.7657
+  epoch 120: loss=0.0246  lr=0.00035  train=0.9917  bf16_test=0.7668
+  epoch 140: loss=0.0237  lr=0.00021  train=0.9917  bf16_test=0.7672
+  epoch 160: loss=0.0233  lr=0.00010  train=0.9922  bf16_test=0.7673
+  epoch 180: loss=0.0231  lr=0.00002  train=0.9923  bf16_test=0.7670
+  epoch 200: loss=0.0231  lr=0.00000  train=0.9922  bf16_test=0.7672
+  trained in 30.7s   best_float_test=0.7806 @ epoch 1
+  bf16 acc on first 22544 KDDTest+ samples: 0.7806
+  confusion matrix (BF16):
+    pred=N pred=A
+  N   9336    375   recall=0.961
+  A   4572   8261   recall=0.644
+  precision: N=0.671  A=0.957   F1(A)=0.770   acc=0.781
+
+--- seed 2 (rng=43) ---
+  epoch   1: loss=0.2517  lr=0.00100  train=0.9577  bf16_test=0.7728
+  epoch  20: loss=0.0395  lr=0.00098  train=0.9866  bf16_test=0.7619
+  epoch  40: loss=0.0297  lr=0.00091  train=0.9914  bf16_test=0.7592
+  epoch  60: loss=0.0261  lr=0.00080  train=0.9930  bf16_test=0.7588
+  epoch  80: loss=0.0237  lr=0.00066  train=0.9933  bf16_test=0.7608
+  epoch 100: loss=0.0222  lr=0.00050  train=0.9943  bf16_test=0.7600
+  epoch 120: loss=0.0211  lr=0.00035  train=0.9940  bf16_test=0.7595
+  epoch 140: loss=0.0206  lr=0.00021  train=0.9949  bf16_test=0.7586
+  epoch 160: loss=0.0202  lr=0.00010  train=0.9949  bf16_test=0.7578
+  epoch 180: loss=0.0201  lr=0.00002  train=0.9951  bf16_test=0.7575
+  epoch 200: loss=0.0200  lr=0.00000  train=0.9951  bf16_test=0.7577
+  trained in 18.3s   best_float_test=0.7728 @ epoch 1
+  bf16 acc on first 22544 KDDTest+ samples: 0.7728
+  confusion matrix (BF16):
+    pred=N pred=A
+  N   9341    370   recall=0.962
+  A   4753   8080   recall=0.630
+  precision: N=0.663  A=0.956   F1(A)=0.759   acc=0.773
+
+--- seed 3 (rng=44) ---
+  epoch   1: loss=0.3039  lr=0.00100  train=0.9594  bf16_test=0.7811
+  epoch  20: loss=0.0438  lr=0.00098  train=0.9850  bf16_test=0.7727
+  epoch  40: loss=0.0339  lr=0.00091  train=0.9896  bf16_test=0.7728
+  epoch  60: loss=0.0284  lr=0.00080  train=0.9909  bf16_test=0.7711
+  epoch  80: loss=0.0262  lr=0.00066  train=0.9924  bf16_test=0.7675
+  epoch 100: loss=0.0247  lr=0.00050  train=0.9924  bf16_test=0.7695
+  epoch 120: loss=0.0238  lr=0.00035  train=0.9931  bf16_test=0.7698
+  epoch 140: loss=0.0232  lr=0.00021  train=0.9937  bf16_test=0.7657
+  epoch 160: loss=0.0229  lr=0.00010  train=0.9933  bf16_test=0.7683
+  epoch 180: loss=0.0227  lr=0.00002  train=0.9935  bf16_test=0.7671
+  epoch 200: loss=0.0226  lr=0.00000  train=0.9935  bf16_test=0.7673
+  trained in 26.5s   best_float_test=0.7811 @ epoch 1
+  bf16 acc on first 22544 KDDTest+ samples: 0.7811
+  confusion matrix (BF16):
+    pred=N pred=A
+  N   9327    384   recall=0.960
+  A   4552   8281   recall=0.645
+  precision: N=0.672  A=0.956   F1(A)=0.770   acc=0.781
+
+--- seed 4 (rng=45) ---
+  epoch   1: loss=0.2728  lr=0.00100  train=0.9647  bf16_test=0.7790
+  epoch  20: loss=0.0421  lr=0.00098  train=0.9842  bf16_test=0.7988
+  epoch  40: loss=0.0331  lr=0.00091  train=0.9900  bf16_test=0.7973
+  epoch  60: loss=0.0287  lr=0.00080  train=0.9912  bf16_test=0.7833
+  epoch  80: loss=0.0271  lr=0.00066  train=0.9925  bf16_test=0.7804
+  epoch 100: loss=0.0259  lr=0.00050  train=0.9915  bf16_test=0.7785
+  epoch 120: loss=0.0251  lr=0.00035  train=0.9922  bf16_test=0.7790
+  epoch 140: loss=0.0245  lr=0.00021  train=0.9928  bf16_test=0.7773
+  epoch 160: loss=0.0242  lr=0.00010  train=0.9926  bf16_test=0.7778
+  epoch 180: loss=0.0241  lr=0.00002  train=0.9928  bf16_test=0.7777
+  epoch 200: loss=0.0240  lr=0.00000  train=0.9929  bf16_test=0.7776
+  trained in 30.2s   best_float_test=0.7988 @ epoch 20
+  bf16 acc on first 22544 KDDTest+ samples: 0.7988
+  confusion matrix (BF16):
+    pred=N pred=A
+  N   9320    391   recall=0.960
+  A   4144   8689   recall=0.677
+  precision: N=0.692  A=0.957   F1(A)=0.793   acc=0.799
+
+--- seed 5 (rng=46) ---
+  epoch   1: loss=0.2700  lr=0.00100  train=0.9605  bf16_test=0.7659
+  epoch  20: loss=0.0523  lr=0.00098  train=0.9813  bf16_test=0.7921
+  epoch  40: loss=0.0411  lr=0.00091  train=0.9844  bf16_test=0.7704
+  epoch  60: loss=0.0356  lr=0.00080  train=0.9848  bf16_test=0.7663
+  epoch  80: loss=0.0321  lr=0.00066  train=0.9900  bf16_test=0.7658
+  epoch 100: loss=0.0296  lr=0.00050  train=0.9906  bf16_test=0.7676
+  epoch 120: loss=0.0279  lr=0.00035  train=0.9909  bf16_test=0.7713
+  epoch 140: loss=0.0268  lr=0.00021  train=0.9916  bf16_test=0.7742
+  epoch 160: loss=0.0262  lr=0.00010  train=0.9917  bf16_test=0.7740
+  epoch 180: loss=0.0260  lr=0.00002  train=0.9921  bf16_test=0.7739
+  epoch 200: loss=0.0259  lr=0.00000  train=0.9920  bf16_test=0.7741
+  trained in 30.3s   best_float_test=0.7921 @ epoch 20
+  bf16 acc on first 22544 KDDTest+ samples: 0.7921
+  confusion matrix (BF16):
+    pred=N pred=A
+  N   9325    386   recall=0.960
+  A   4300   8533   recall=0.665
+  precision: N=0.684  A=0.957   F1(A)=0.785   acc=0.792
+
+=== seed sweep summary ===
+  seed=42  bf16=0.7806  float=0.7806
+  seed=43  bf16=0.7728  float=0.7728
+  seed=44  bf16=0.7811  float=0.7811
+  seed=45  bf16=0.7988  float=0.7988 *
+  seed=46  bf16=0.7921  float=0.7921
+
+Final BF16 evaluation on 22544 KDDTest+ samples (seed=45)...
+  bf16 accuracy: 0.7988 (18009/22544)
+  confusion matrix:
+    pred=N pred=A
+  N   9320    391   recall=0.960
+  A   4144   8689   recall=0.677
+  precision: N=0.692  A=0.957   F1(A)=0.793   acc=0.799
+
+--dry-run: not writing artifacts.

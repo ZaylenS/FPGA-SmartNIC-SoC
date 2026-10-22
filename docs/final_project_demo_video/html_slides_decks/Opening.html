@@ -1,0 +1,701 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Network Processor with Inline ML-IDS — Opening</title>
+<style>
+  :root {
+    --ink: #1a365d;
+    --ink-2: #2d3748;
+    --muted: #4a5568;
+    --gray: #718096;
+    --line: #cbd5e0;
+    --soft: #f7fafc;
+    --tool-fill: #edf2f7;
+    --tool-stroke: #2b6cb0;
+    --hl-fill: #e8f2ff;
+    --hl-stroke: #2c5282;
+    --arm-fill: #e9d8fd;
+    --arm-stroke: #6b46c1;
+    --gpu-fill: #fed7aa;
+    --gpu-stroke: #c05621;
+    --in-fill: #f7fafc;
+    --in-stroke: #4a5568;
+    --curve: #2b6cb0;
+    --big: #2c5282;
+  }
+  html, body { margin:0; padding:0; height:100vh; overflow:hidden; background:#1a1a1a; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; color: var(--ink-2); }
+  #stageWrap { position: fixed; inset: 0; overflow: hidden; }
+  #stage { width: 1920px; height: 1080px; background: #ffffff; position: absolute; left: 50%; top: 50%; overflow: hidden; transform: translate(-50%, -50%); transform-origin: center center; }
+
+  .mono { font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
+  .tabular { font-variant-numeric: tabular-nums; }
+
+  /* Stage counter */
+  .counter { position:absolute; left:1380px; top:36px; width:80px; height:30px; font-size:14px; color: var(--gray); text-align:right; }
+
+  /* Subtitle */
+  .subtitle {
+    position:absolute; left:80px; top:850px; width:1380px; height:55px;
+    font-style: italic; color: var(--muted); font-size: 24px; line-height: 1.35;
+    transition: opacity 200ms cubic-bezier(0.4,0,0.2,1);
+  }
+  .subtitle.s1 { text-align:center; left:0; width:1460px; top:720px; font-size: 20px; }
+
+  /* Controls */
+  .controls { position:absolute; left:80px; top:930px; width:1380px; height:50px; display:flex; gap:14px; align-items:center; }
+  .controls button {
+    background: #1a365d; color:#fff; border:none; padding: 10px 20px; border-radius:6px;
+    font-size:14px; font-weight:600; cursor:pointer; font-family: inherit; letter-spacing:0.04em;
+  }
+  .controls button:hover { background:#2c5282; }
+  .controls .progress { flex:1; height:4px; background:#e2e8f0; border-radius:2px; overflow:hidden; margin-left:10px; }
+  .controls .progress > div { height:100%; background: var(--big); width:0%; transition: width 200ms linear; }
+  body.clean .controls, body.clean .counter { display:none; }
+
+  /* Stage frames */
+  .frame { position:absolute; inset:0; opacity:0; pointer-events:none; transition: opacity 300ms cubic-bezier(0.4,0,0.2,1); }
+  .frame.active { opacity:1; pointer-events:auto; }
+
+  /* Stage title (2-5) */
+  .stage-title { position:absolute; left:80px; top:40px; font-size:36px; font-weight:800; color: var(--ink); letter-spacing:-0.01em; }
+
+  /* ---- Stage 1 ---- */
+  #s1 { background: radial-gradient(ellipse at 50% 35%, #fbfcfe 0%, #ffffff 60%); }
+  .title-line { position:absolute; left:0; width:1460px; text-align:center; font-weight:800; font-size:96px; line-height:1.1; color:#1a202c; letter-spacing:-0.025em; }
+  .title-line .ch { display:inline-block; opacity:0; transform: translateY(20px); }
+  .title-line .ch.in { animation: chIn 600ms cubic-bezier(0.2,0.7,0.3,1) forwards; }
+  @keyframes chIn { to { opacity:1; transform: translateY(0); } }
+  #t1-top { top:340px; }
+  #t1-bot { top:455px; }
+  #accent { position:absolute; left: 590px; top:585px; width:0; height:3px; background: var(--hl-stroke); }
+  #accent.in { width: 280px; transition: width 400ms cubic-bezier(0.2,0.7,0.3,1) 0ms; }
+  .s1-line { position:absolute; left:0; width:1460px; text-align:center; opacity:0; transform: translateY(6px); transition: opacity 500ms cubic-bezier(0.2,0.7,0.3,1), transform 500ms cubic-bezier(0.2,0.7,0.3,1); }
+  .s1-line.in { opacity:1; transform: translateY(0); }
+  #s1-course { top:560px; font-size:30px; color: var(--muted); font-weight:500; letter-spacing:0.02em; }
+
+  /* ---- Stage 2 ---- */
+  .ann-wrap { position:absolute; left:80px; top:160px; width:1300px; height:520px; }
+  .col-label-top { position:absolute; top:0px; font-size:18px; color: var(--ink); text-align:center; }
+  .col-label-bot { position:absolute; top:420px; font-size:14px; color: var(--gray); font-style:italic; text-align:center; }
+  .weight-label { position:absolute; top:460px; font-size:14px; color: var(--muted); text-align:center; }
+  .ann-node { fill: var(--in-fill); stroke: var(--in-stroke); stroke-width: 1.5; opacity:0; transform: scale(0.6); transform-origin:center; transform-box: fill-box; }
+  .ann-node.in { animation: nodeIn 350ms cubic-bezier(0.2,0.7,0.3,1) forwards; }
+  @keyframes nodeIn { to { opacity:1; transform: scale(1); } }
+  .ann-line { stroke: var(--line); stroke-width:1; opacity:0; }
+  .ann-line.in { animation: lineIn 500ms cubic-bezier(0.2,0.7,0.3,1) forwards; }
+  @keyframes lineIn { to { opacity: 0.4; } }
+  .col-pulse { animation: pulse 350ms ease-out; }
+  @keyframes pulse { 0% { filter: brightness(1); } 50% { filter: brightness(1.15) drop-shadow(0 0 8px rgba(44,82,130,0.45)); } 100% { filter: brightness(1); } }
+
+  .param-panel {
+    position:absolute; left:1240px; top:200px; width:190px; height:180px;
+    background: var(--hl-fill); border: 2px solid var(--hl-stroke); border-radius:6px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    opacity:0; transform: translateY(8px); transition: opacity 500ms cubic-bezier(0.2,0.7,0.3,1), transform 500ms cubic-bezier(0.2,0.7,0.3,1);
+  }
+  .param-panel.in { opacity:1; transform: translateY(0); }
+  .param-panel .t { font-size:18px; font-weight:700; color: var(--ink); }
+  .param-panel .n { font-size:48px; font-weight:800; color: var(--big); font-variant-numeric: tabular-nums; margin-top:6px; }
+  .param-panel .s { font-size:14px; color: var(--muted); font-style:italic; margin-top:6px; }
+
+  .spec-row { position:absolute; left:80px; top:700px; width:1300px; height:70px; display:flex; gap:22px; }
+  .spec-card {
+    flex:1; height:60px; background: var(--tool-fill); border:1px solid var(--line); border-radius:6px;
+    display:flex; align-items:center; justify-content:center; font-size:18px; color: var(--ink);
+    opacity:0; transform: translateY(6px); transition: opacity 400ms cubic-bezier(0.2,0.7,0.3,1), transform 400ms cubic-bezier(0.2,0.7,0.3,1);
+  }
+  .spec-card.in { opacity:1; transform: translateY(0); }
+
+  /* ---- Stage 3 ---- */
+  .stat-row { position:absolute; left:100px; top:140px; width:1300px; height:160px; display:flex; }
+  .stat { flex:1; display:flex; flex-direction:column; align-items:center; }
+  .stat .n { font-size:88px; font-weight:800; color: var(--big); font-variant-numeric: tabular-nums; line-height:1; opacity:0; }
+  .stat.in .n { opacity:1; transition: opacity 300ms; }
+  .stat .l { font-size:18px; color: var(--gray); margin-top:18px; }
+  #sep3 { position:absolute; left:310px; top:320px; width:0; height:1px; background: var(--line); }
+  #sep3.in { width:1300px; transition: width 500ms cubic-bezier(0.2,0.7,0.3,1); }
+
+  .ds-flow { position:absolute; left:200px; top:380px; width:1060px; height:100px; display:flex; align-items:center; justify-content:space-between; }
+  .ds-pill { width:300px; height:56px; background: var(--tool-fill); border:1px solid var(--tool-stroke); border-radius:28px; display:flex; align-items:center; justify-content:center; font-family: ui-monospace, Menlo, Consolas, monospace; font-size:16px; color: var(--ink); opacity:0; transform: scale(0.96); transition: opacity 400ms cubic-bezier(0.2,0.7,0.3,1), transform 400ms cubic-bezier(0.2,0.7,0.3,1); }
+  .ds-pill.in { opacity:1; transform: scale(1); }
+  .ds-arrow { position:relative; flex:1; height:60px; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  .ds-arrow .lbl { font-style:italic; font-size:14px; color: var(--gray); margin-bottom:6px; opacity:0; transition: opacity 300ms; }
+  .ds-arrow.in .lbl { opacity:1; }
+  .ds-arrow svg { width:100%; height:20px; }
+  .ds-arrow .ln { stroke: var(--muted); stroke-width:1.5; fill:none; stroke-dasharray: 400; stroke-dashoffset: 400; }
+  .ds-arrow.in .ln { stroke-dashoffset:0; transition: stroke-dashoffset 600ms cubic-bezier(0.2,0.7,0.3,1); }
+  .ds-arrow .hd { fill: var(--muted); opacity:0; }
+  .ds-arrow.in .hd { opacity:1; transition: opacity 300ms 500ms; }
+
+  .feat-list { position:absolute; left:100px; top:520px; width:1300px; height:180px; font-family: ui-monospace, Menlo, Consolas, monospace; font-size:18px; color: var(--muted); text-align:center; line-height:1.8; }
+  .feat-list .f { display:inline-block; opacity:0; transform: translateY(4px); transition: opacity 350ms cubic-bezier(0.2,0.7,0.3,1), transform 350ms cubic-bezier(0.2,0.7,0.3,1); margin: 0 4px; }
+  .feat-list .f.in { opacity:1; transform: translateY(0); }
+  .feat-list .f.hl { color: var(--big); font-weight:700; }
+  .feat-list .sep { color: var(--line); }
+
+  /* ---- Stage 4 ---- */
+  .cfg-card { position:absolute; left:100px; top:160px; width:580px; height:450px; background: var(--tool-fill); border:2px solid var(--tool-stroke); border-radius:8px; padding: 22px 28px; box-sizing:border-box; }
+  .cfg-card h3 { margin:0 0 18px 0; font-size:20px; color: var(--ink); font-weight:700; }
+  .cfg-line { font-family: ui-monospace, Menlo, Consolas, monospace; font-size:18px; color: var(--ink); padding-left: 0px; margin-bottom: 12px; opacity:0; transform: translateY(4px); transition: opacity 300ms cubic-bezier(0.2,0.7,0.3,1), transform 300ms cubic-bezier(0.2,0.7,0.3,1); }
+  .cfg-line.in { opacity:1; transform: translateY(0); }
+
+  .loss-panel { position:absolute; left:760px; top:160px; width:640px; height:450px; background:#fff; border:1px solid #e2e8f0; border-radius:8px; }
+  .loss-panel .yt { position:absolute; left:18px; top:14px; font-size:14px; color: var(--gray); font-style:italic; }
+
+  .out-call { position:absolute; left:540px; top:640px; width:380px; height:60px; background: var(--hl-fill); border:1px solid var(--hl-stroke); border-radius:6px; display:flex; flex-direction:column; align-items:center; justify-content:center; opacity:0; transition: opacity 500ms cubic-bezier(0.2,0.7,0.3,1); }
+  .out-call.in { opacity:1; }
+  .out-call .a { font-size:16px; font-weight:700; color: var(--ink); }
+  .out-call .b { font-family: ui-monospace, Menlo, Consolas, monospace; font-size:14px; color: var(--muted); margin-top:4px; }
+
+  /* ---- Stage 5 ---- */
+  .big-num { position:absolute; left:0; top:260px; width:1460px; text-align:center; font-size:200px; font-weight:800; color: var(--big); font-variant-numeric: tabular-nums; letter-spacing:-0.02em; line-height:1; }
+  .big-num.shadow { text-shadow: 0 6px 28px rgba(44,82,130,0.18); transition: text-shadow 800ms cubic-bezier(0.4,0,0.2,1); }
+  .cap-row { position:absolute; left:80px; top:520px; width:1300px; text-align:center; font-size:22px; color: var(--muted); }
+  .cap-row .p { display:inline-block; opacity:0; transform: translateY(4px); transition: opacity 350ms cubic-bezier(0.2,0.7,0.3,1), transform 350ms cubic-bezier(0.2,0.7,0.3,1); margin: 0 6px; }
+  .cap-row .p.in { opacity:1; transform: translateY(0); }
+  .cap-row .dot { color: var(--line); }
+
+  .recall-row { position:absolute; left:320px; top:600px; width:820px; text-align:center; font-family: ui-monospace, Menlo, Consolas, monospace; font-size:16px; color: var(--muted); opacity:0; transition: opacity 400ms cubic-bezier(0.2,0.7,0.3,1); }
+  .recall-row.in { opacity:1; }
+
+  .handoff { position:absolute; left:230px; top:700px; width:1000px; height:50px; display:flex; align-items:center; gap:14px; }
+  .handoff .pre { font-style:italic; font-size:22px; color: var(--gpu-stroke); white-space:nowrap; opacity:0; transition: opacity 300ms; }
+  .handoff svg { flex:1; height:30px; }
+  .handoff .post { font-style:italic; font-size:14px; color: var(--gray); white-space:nowrap; opacity:0; transition: opacity 300ms 700ms; }
+  .handoff.in .pre, .handoff.in .post { opacity:1; }
+  .handoff .arr-ln { stroke: var(--gpu-stroke); stroke-width:3; fill:none; stroke-dasharray: 280; stroke-dashoffset: 280; }
+  .handoff.in .arr-ln { stroke-dashoffset:0; transition: stroke-dashoffset 600ms cubic-bezier(0.2,0.7,0.3,1) 200ms; }
+  .handoff .arr-hd { fill: var(--gpu-stroke); opacity:0; }
+  .handoff.in .arr-hd { opacity:1; transition: opacity 200ms 800ms; }
+
+  .title-title-1 { position: absolute; left: 80px; top: 40px; }
+
+</style>
+</head>
+<body>
+<div id="stageWrap"><div id="stage">
+
+  <div class="counter" id="counter">Stage 1 of 5</div>
+
+  <!-- ====== STAGE 1 ====== -->
+  <div class="frame active" id="s1" data-screen-label="01 Title">
+    <div class="title-line" id="t1-top"></div>
+    <div class="title-line" id="t1-bot"></div>
+    <div id="accent"></div>
+    <div class="s1-line" id="s1-course" style="padding: 0px; margin: 50px 0px 0px">EE533 SP26 — Team 7</div>
+    <div class="subtitle s1" id="sub1"><em>Inline ML-IDS on FPGA — custom datapath + custom GPU</em></div>
+  </div>
+
+  <!-- ====== STAGE 2 ====== -->
+  <div class="frame" id="s2" data-screen-label="02 Classifier">
+    <div class="stage-title">Classifier — fully-connected ANN</div>
+    <div class="ann-wrap">
+      <svg id="annSvg" width="1300" height="520" viewBox="0 0 1300 520" style="position:absolute; left:0; top:0;">
+        <g id="annLines"></g>
+        <g id="annNodes"></g>
+      </svg>
+
+      <div class="col-label-top mono" style="left:80px;  width:240px;">input · 11</div>
+      <div class="col-label-top mono" style="left:380px; width:240px;">hidden · 16</div>
+      <div class="col-label-top mono" style="left:680px; width:240px;">hidden · 8</div>
+      <div class="col-label-top mono" style="left:980px; width:240px;">output · 2</div>
+
+      <div class="col-label-bot" style="left:80px;  width:240px;">packet features (pre-extracted)</div>
+      <div class="col-label-bot" style="left:380px; width:240px;">ReLU</div>
+      <div class="col-label-bot" style="left:680px; width:240px;">ReLU</div>
+      <div class="col-label-bot" style="left:980px; width:240px;">normal · attack (logits)</div>
+
+      <div class="weight-label mono" style="left:230px; width:240px;">W1: 11 × 16  +  16 b</div>
+      <div class="weight-label mono" style="left:530px; width:240px;">W2: 16 × 8  +  8 b</div>
+      <div class="weight-label mono" style="left:830px; width:240px;">W3: 8 × 2  +  2 b</div>
+    </div>
+
+    <div class="param-panel" id="paramPanel">
+      <div class="t">Total parameters</div>
+      <div class="n tabular" id="paramN">0</div>
+      <div class="s mono">= 692 bytes at BF16</div>
+    </div>
+
+    <div class="spec-row">
+      <div class="spec-card mono" data-i="0">fully connected</div>
+      <div class="spec-card mono" data-i="1">ReLU activations</div>
+      <div class="spec-card mono" data-i="2">BF16 quantized (QAT)</div>
+      <div class="spec-card mono" data-i="3">binary classification</div>
+    </div>
+
+    <div class="subtitle"><em>346 params · 692 bytes · runs inline as packets transit</em></div>
+  </div>
+
+  <!-- ====== STAGE 3 ====== -->
+  <div class="frame" id="s3" data-screen-label="03 Dataset">
+    <div class="stage-title">Dataset — NSL-KDD</div>
+
+    <div class="stat-row">
+      <div class="stat" data-target="126" data-suffix=" K" data-i="0"><div class="n">0</div><div class="l">training samples</div></div>
+      <div class="stat" data-target="22.5" data-suffix=" K" data-i="1"><div class="n">0</div><div class="l">test samples (KDDTest+)</div></div>
+      <div class="stat" data-target="11" data-suffix="" data-i="2"><div class="n">0</div><div class="l">features (top-RF, of 41 raw)</div></div>
+    </div>
+
+    <div id="sep3"></div>
+
+    <div class="ds-flow" id="dsFlow">
+      <div class="ds-pill" id="dsSrc">[NSL-KDD: 41 raw features]</div>
+      <div class="ds-arrow" id="dsArrow">
+        <div class="lbl">Random-Forest importance</div>
+        <svg viewBox="0 0 400 20" preserveAspectRatio="none">
+          <line class="ln" x1="0" y1="10" x2="388" y2="10" />
+          <polygon class="hd" points="388,4 400,10 388,16" />
+        </svg>
+      </div>
+      <div class="ds-pill" id="dsTgt">[11 selected]</div>
+    </div>
+
+    <div class="feat-list" id="featList"></div>
+
+    <div class="subtitle"><em>NSL-KDD = de-duplicated KDD'99 · src/dst bytes dominate</em></div>
+  </div>
+
+  <!-- ====== STAGE 4 ====== -->
+  <style>
+    #s4 .subtitle { top: 730px; font-size: 22px; line-height: 1.35; height: auto; max-height: 200px; }
+    #s4 .loss-panel svg { width: 640px; height: 450px; }
+    #s4 .cfg-line { font-size: 19px; margin-bottom: 13px; }
+    #s4 .cfg-card h3 { font-size: 22px; }
+  </style>
+  <div class="frame" id="s4" data-screen-label="04 Training">
+    <div class="stage-title">Training methodology</div>
+
+    <div class="cfg-card">
+      <h3>v3 recipe (deployed)</h3>
+      <div class="cfg-line">optimizer        :  Adam</div>
+      <div class="cfg-line">learning rate    :  1e-3 (cosine decay)</div>
+      <div class="cfg-line">epochs           :  200</div>
+      <div class="cfg-line">batch size       :  256</div>
+      <div class="cfg-line">loss             :  cross-entropy</div>
+      <div class="cfg-line">label smoothing  :  0.1</div>
+      <div class="cfg-line">seed sweep       :  15 → seed 53</div>
+      <div class="cfg-line">quantization     :  QAT → BF16</div>
+    </div>
+
+    <div class="loss-panel">
+      <div class="yt">validation loss</div>
+      <svg width="640" height="420" viewBox="0 0 640 420">
+        <!-- axes -->
+        <line x1="70" y1="40" x2="70" y2="360" stroke="#cbd5e0" stroke-width="1.5"/>
+        <line x1="70" y1="360" x2="600" y2="360" stroke="#cbd5e0" stroke-width="1.5"/>
+        <!-- x ticks -->
+        <g font-family="-apple-system,sans-serif" font-size="14" fill="#718096" text-anchor="middle">
+          <text x="70" y="380">0</text>
+          <text x="203" y="380">50</text>
+          <text x="335" y="380">100</text>
+          <text x="468" y="380">150</text>
+          <text x="600" y="380">200</text>
+          <text x="335" y="405" font-style="italic" fill="#4a5568">epochs</text>
+        </g>
+        <!-- y axis label -->
+        <g font-family="-apple-system,sans-serif" font-size="13" fill="#718096">
+          <text x="50" y="45" text-anchor="end">1.0</text>
+          <text x="50" y="200" text-anchor="end">0.5</text>
+          <text x="50" y="363" text-anchor="end">0.0</text>
+        </g>
+        <!-- curve: (0,0.85) -> (~30, 0.30) -> (200, 0.15)
+             x: 0 epoch=70, 200 epoch=600 ; y: 1.0=60, 0.0=410 (range 350) -->
+        <path id="lossCurve" d="M 70 312 C 130 280, 178 170, 200 268 S 400 326, 600 343"
+              stroke="#2b6cb0" stroke-width="2.5" fill="none" stroke-linecap="round"
+              stroke-dasharray="900" stroke-dashoffset="900"/>
+        <!-- best val marker at epoch ~25 -> x = 70 + 25/200*530 = 70+66.25=136.25; loss ~0.30 -> y=410 - 0.30*350 = 305 -->
+        <g id="bestVal" opacity="0">
+          <circle cx="136" cy="265" r="6" fill="#2b6cb0" stroke="#fff" stroke-width="2"/>
+          <line x1="142" y1="265" x2="180" y2="230" stroke="#718096" stroke-width="1"/>
+          <text x="184" y="226" font-family="-apple-system,sans-serif" font-size="14" font-style="italic" fill="#718096">best val · early stop</text>
+        </g>
+      </svg>
+    </div>
+
+    <div class="out-call" id="outCall">
+      <div class="a">→ deployed weights</div>
+      <div class="b">346 params · 692 bytes · BF16</div>
+    </div>
+
+    <div class="subtitle"><em style="margin: 0px; border-width: 0px; border-style: solid">QAT → BF16 weights faithful to silicon · best-val from early-stop</em></div>
+  </div>
+
+  <!-- ====== STAGE 5 ====== -->
+  <div class="frame" id="s5" data-screen-label="05 Result">
+    <div class="stage-title">Result — dev baseline</div>
+
+    <div class="big-num tabular" id="bigNum">0.0 %</div>
+
+    <div class="cap-row" id="capRow">
+      <span class="p" data-i="0">KDDTest+ test set</span><span class="p dot" data-i="0"> · </span><span class="p" data-i="1">22,544 samples</span><span class="p dot" data-i="1"> · </span><span class="p" data-i="2">BF16-faithful evaluation</span>
+    </div>
+
+    <div class="recall-row" id="recallRow">attack recall: 86.4 %  ·  normal recall: 77.1 %</div>
+
+    <div class="handoff" id="handoff">
+      <div class="pre">next: training demo + hardware architecture</div>
+      <svg viewBox="0 0 300 30" preserveAspectRatio="none" style="width:300px; height:30px;">
+        <line class="arr-ln" x1="0" y1="15" x2="280" y2="15"/>
+        <polygon class="arr-hd" points="280,7 300,15 280,23"/>
+      </svg>
+    </div>
+
+    <div class="subtitle"><em>Attack recall (86.4 %) is the metric that matters for IDS</em></div>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls" id="controls">
+    <button id="bPrev">◂ Prev</button>
+    <button id="bPlay">▶ Play</button>
+    <button id="bNext">Next ▸</button>
+    <div class="progress"><div id="prog"></div></div>
+  </div>
+
+</div></div>
+
+<script>
+/* ====== Scale ====== */
+function fit() {
+  const s = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+  document.getElementById('stage').style.transform = 'translate(-50%, -50%) scale(' + s + ')';
+}
+window.addEventListener('resize', fit); fit();
+
+/* ====== Query params ====== */
+const params = new URLSearchParams(location.search);
+if (params.get('clean') === '1') document.body.classList.add('clean');
+const DUR = {
+  1: parseInt(params.get('s1') || '15000', 10),
+  2: parseInt(params.get('s2') || '36000', 10),
+  3: parseInt(params.get('s3') || '22000', 10),
+  4: parseInt(params.get('s4') || '22000', 10),
+  5: parseInt(params.get('s5') || '15000', 10),
+};
+
+/* ====== State ====== */
+const TOTAL = 5;
+let current = 1;
+let playing = false;
+let stageTimer = null;
+let progressTimer = null;
+let stageStartTs = 0;
+const playedAt = new Set();   // stages whose reveal sequence already ran
+
+/* ====== Helpers ====== */
+const $ = (sel, root=document) => root.querySelector(sel);
+const $$ = (sel, root=document) => Array.from(root.querySelectorAll(sel));
+const setCounter = () => { $('#counter').textContent = `Stage ${current} of ${TOTAL}`; };
+
+function showStage(n, opts={}) {
+  current = Math.max(1, Math.min(TOTAL, n));
+  setCounter();
+  $$('.frame').forEach(f => f.classList.remove('active'));
+  $('#s'+current).classList.add('active');
+  if (opts.replay || !playedAt.has(current)) {
+    resetReveals(current);
+    playedAt.add(current);
+    runReveals(current);
+  }
+}
+
+function resetReveals(n) {
+  if (n===1) {
+    [$('#t1-top'), $('#t1-bot')].forEach(el => el.innerHTML = '');
+    $('#accent').classList.remove('in');
+    ['#s1-course'].forEach(id => $(id).classList.remove('in'));
+  }
+  if (n===2) {
+    $$('#annNodes circle').forEach(c => c.classList.remove('in'));
+    $$('#annLines line').forEach(l => l.classList.remove('in'));
+    $('#paramPanel').classList.remove('in');
+    $('#paramN').textContent = '0';
+    $$('.spec-card').forEach(c => c.classList.remove('in'));
+  }
+  if (n===3) {
+    $$('.stat').forEach(s => { s.classList.remove('in'); s.querySelector('.n').textContent='0'; });
+    $('#sep3').classList.remove('in');
+    $('#dsSrc').classList.remove('in'); $('#dsTgt').classList.remove('in'); $('#dsArrow').classList.remove('in');
+    $$('#featList .f').forEach(el => { el.classList.remove('in'); el.classList.remove('hl'); });
+  }
+  if (n===4) {
+    $$('.cfg-line').forEach(c => c.classList.remove('in'));
+    const c = $('#lossCurve'); c.style.transition='none'; c.style.strokeDashoffset='900';
+    void c.getBoundingClientRect();
+    $('#bestVal').style.opacity = '0';
+    $('#outCall').classList.remove('in');
+  }
+  if (n===5) {
+    $('#bigNum').textContent = '0.0 %'; $('#bigNum').classList.remove('shadow');
+    $$('#capRow .p').forEach(p => p.classList.remove('in'));
+    $('#recallRow').classList.remove('in');
+    $('#handoff').classList.remove('in');
+  }
+}
+
+/* ====== Stage 1: build letters ====== */
+function buildTitle() {
+  const top = 'Network Processor';
+  const bot = 'with Inline ML-IDS';
+  $('#t1-top').innerHTML = top.split('').map(ch => `<span class="ch">${ch===' '?'&nbsp;':ch}</span>`).join('');
+  $('#t1-bot').innerHTML = bot.split('').map(ch => `<span class="ch">${ch===' '?'&nbsp;':ch}</span>`).join('');
+}
+
+/* ====== Build ANN ====== */
+function buildANN() {
+  const cols = [
+    { n: 11, x: 195, fill:'#f7fafc', stroke:'#4a5568' },
+    { n: 16, x: 495, fill:'#e9d8fd', stroke:'#6b46c1' },
+    { n:  8, x: 795, fill:'#e9d8fd', stroke:'#6b46c1' },
+    { n:  2, x: 1095, fill:'#fed7aa', stroke:'#c05621' },
+  ];
+  const yTop = 50, yBot = 410, r = 9;
+  const nodesG = $('#annNodes'); nodesG.innerHTML='';
+  const linesG = $('#annLines'); linesG.innerHTML='';
+  const positions = cols.map(c => {
+    const span = yBot - yTop;
+    const step = c.n>1 ? span/(c.n-1) : 0;
+    return Array.from({length: c.n}, (_, i) => ({ x: c.x, y: c.n===1 ? (yTop+yBot)/2 : yTop + i*step }));
+  });
+  // connections between adjacent layers — 10 random representative diagonals
+  for (let p=0; p<cols.length-1; p++) {
+    const A = positions[p], B = positions[p+1];
+    const pairs = new Set();
+    while (pairs.size < 10) {
+      const a = Math.floor(Math.random()*A.length);
+      const b = Math.floor(Math.random()*B.length);
+      pairs.add(a+'-'+b);
+    }
+    pairs.forEach(k => {
+      const [a,b] = k.split('-').map(Number);
+      const line = document.createElementNS('http://www.w3.org/2000/svg','line');
+      line.setAttribute('x1', A[a].x); line.setAttribute('y1', A[a].y);
+      line.setAttribute('x2', B[b].x); line.setAttribute('y2', B[b].y);
+      line.setAttribute('class','ann-line'); line.dataset.pair = p;
+      linesG.appendChild(line);
+    });
+  }
+  cols.forEach((c, idx) => {
+    positions[idx].forEach(p => {
+      const ci = document.createElementNS('http://www.w3.org/2000/svg','circle');
+      ci.setAttribute('cx', p.x); ci.setAttribute('cy', p.y); ci.setAttribute('r', r);
+      ci.setAttribute('fill', c.fill); ci.setAttribute('stroke', c.stroke); ci.setAttribute('stroke-width', 2);
+      ci.setAttribute('class','ann-node'); ci.dataset.col = idx;
+      nodesG.appendChild(ci);
+    });
+  });
+}
+
+/* ====== Build feature list ====== */
+function buildFeatList() {
+  const feats = ['dst_bytes','src_bytes','flag','same_srv_rate','diff_srv_rate','dst_host_srv_count','dst_host_same_srv_rate','logged_in','protocol_type','count','service'];
+  const el = $('#featList');
+  el.innerHTML = feats.map((f,i) => `<span class="f" data-i="${i}" data-name="${f}">${f}</span>${i<feats.length-1?'<span class="f sep" data-i="'+(i+0.5)+'"> · </span>':''}`).join('');
+}
+
+/* ====== Reveal logic ====== */
+function runReveals(n) {
+  if (n===1) {
+    buildTitle();
+    const tops = $$('#t1-top .ch'), bots = $$('#t1-bot .ch');
+    const baseDelay = 50;
+    tops.forEach((c, i) => {
+      const jitter = (Math.random()*30 - 15);
+      setTimeout(() => c.classList.add('in'), i*baseDelay + jitter);
+    });
+    const afterTop = tops.length * baseDelay + 200;
+    bots.forEach((c, i) => {
+      const jitter = (Math.random()*30 - 15);
+      setTimeout(() => c.classList.add('in'), afterTop + i*baseDelay + jitter);
+    });
+    const afterAllLetters = afterTop + bots.length*baseDelay + 200;
+    setTimeout(() => $('#accent').classList.add('in'), afterAllLetters);
+    setTimeout(() => $('#s1-course').classList.add('in'), afterAllLetters + 600);
+  }
+  if (n===2) {
+    const nodes = $$('#annNodes circle');
+    const lines = $$('#annLines line');
+    // Column reveal timing
+    const colDelays = [0, 600, 1200, 1800];
+    nodes.forEach(c => {
+      const col = +c.dataset.col;
+      const delay = colDelays[col] + Math.random()*120;
+      setTimeout(()=>c.classList.add('in'), delay);
+    });
+    // Lines between cols p and p+1 land when col p+1 lands
+    lines.forEach(l => {
+      const pair = +l.dataset.pair;
+      const delay = colDelays[pair+1] + 100;
+      setTimeout(()=>l.classList.add('in'), delay);
+    });
+    // After column 4 settles (~1800+400), pulse wave
+    setTimeout(() => {
+      for (let i=0;i<4;i++) {
+        setTimeout(() => {
+          $$('#annNodes circle').filter(c => +c.dataset.col === i).forEach(c => {
+            c.classList.add('col-pulse');
+            setTimeout(()=>c.classList.remove('col-pulse'), 360);
+          });
+        }, i*200);
+      }
+    }, 2400);
+    // Param panel + count-up
+    setTimeout(() => {
+      $('#paramPanel').classList.add('in');
+      countUp($('#paramN'), 0, 346, 700, v => Math.round(v).toString());
+    }, 3400);
+    // Spec cards
+    [0,1,2,3].forEach(i => {
+      setTimeout(()=>$(`.spec-card[data-i="${i}"]`).classList.add('in'), 4400 + i*250);
+    });
+  }
+  if (n===3) {
+    // Big stats
+    $$('.stat').forEach(stat => {
+      const i = +stat.dataset.i;
+      const target = parseFloat(stat.dataset.target);
+      const suffix = stat.dataset.suffix;
+      setTimeout(() => {
+        stat.classList.add('in');
+        countUp(stat.querySelector('.n'), 0, target, 700, v => {
+          if (target % 1 === 0 && suffix === '') return Math.round(v).toString();
+          if (target === 11) return Math.round(v).toString();
+          if (target === 126) return Math.round(v) + suffix;
+          if (target === 22.5) return v.toFixed(1) + suffix;
+          return v.toFixed(1) + suffix;
+        });
+      }, i*200);
+    });
+    setTimeout(()=>$('#sep3').classList.add('in'), 1100);
+    // Flow
+    setTimeout(()=>$('#dsSrc').classList.add('in'), 1500);
+    setTimeout(()=>$('#dsArrow').classList.add('in'), 1900);
+    setTimeout(()=>$('#dsTgt').classList.add('in'), 2700);
+    // Feature list — left to right
+    const feats = $$('#featList .f');
+    feats.forEach((f, i) => {
+      setTimeout(()=>f.classList.add('in'), 3300 + i*120);
+    });
+    // Highlight src_bytes & dst_bytes
+    const totalDelay = 3300 + feats.length*120 + 300;
+    setTimeout(() => {
+      feats.forEach(f => {
+        const name = f.dataset.name;
+        if (name === 'src_bytes' || name === 'dst_bytes') {
+          f.classList.add('hl');
+          setTimeout(()=>f.classList.remove('hl'), 250);
+          setTimeout(()=>f.classList.add('hl'), 700);
+        }
+      });
+    }, totalDelay);
+  }
+  if (n===4) {
+    $$('.cfg-line').forEach((l, i) => {
+      setTimeout(()=>l.classList.add('in'), 400 + i*250);
+    });
+    // Loss curve draw
+    setTimeout(() => {
+      const c = $('#lossCurve');
+      c.style.transition = 'stroke-dashoffset 3000ms cubic-bezier(0.3,0,0.4,1)';
+      c.style.strokeDashoffset = '0';
+    }, 600);
+    // Best-val marker fades in after curve passes that x (~25/200 * 3000 = 375ms into draw)
+    setTimeout(() => {
+      const bv = $('#bestVal');
+      bv.style.transition = 'opacity 500ms cubic-bezier(0.2,0.7,0.3,1)';
+      bv.style.opacity = '1';
+    }, 600 + 600);
+    // Output callout last
+    setTimeout(()=>$('#outCall').classList.add('in'), 3200);
+  }
+  if (n===5) {
+    // Count up the big number
+    setTimeout(() => {
+      countUp($('#bigNum'), 0, 82.4, 1500, v => v.toFixed(1) + ' %');
+      setTimeout(() => {
+        $('#bigNum').classList.add('shadow');
+        setTimeout(()=>$('#bigNum').classList.remove('shadow'), 1200);
+      }, 1600);
+    }, 300);
+    // Caption row phrases
+    [0,1,2].forEach(i => {
+      setTimeout(()=>{
+        $$('#capRow .p[data-i="'+i+'"]').forEach(el => el.classList.add('in'));
+      }, 2100 + i*200);
+    });
+    // Recall row
+    setTimeout(()=>$('#recallRow').classList.add('in'), 3100);
+    // Handoff arrow
+    setTimeout(()=>$('#handoff').classList.add('in'), 3700);
+  }
+}
+
+/* ====== Number count-up ====== */
+function countUp(el, from, to, dur, format) {
+  const start = performance.now();
+  function frame(now) {
+    const t = Math.min(1, (now - start)/dur);
+    const eased = 1 - Math.pow(1-t, 3); // ease-out cubic
+    const v = from + (to-from)*eased;
+    el.textContent = format(v);
+    if (t < 1) requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+}
+
+/* ====== Playback ====== */
+function clearTimers() {
+  if (stageTimer) { clearTimeout(stageTimer); stageTimer=null; }
+  if (progressTimer) { cancelAnimationFrame(progressTimer); progressTimer=null; }
+}
+function setPlayLabel() { $('#bPlay').textContent = playing ? '⏸ Pause' : '▶ Play'; }
+function scheduleStage() {
+  clearTimers();
+  stageStartTs = performance.now();
+  const d = DUR[current];
+  function progFrame(now) {
+    const t = Math.min(1, (now - stageStartTs)/d);
+    $('#prog').style.width = (t*100) + '%';
+    if (playing && t < 1) progressTimer = requestAnimationFrame(progFrame);
+  }
+  progressTimer = requestAnimationFrame(progFrame);
+  stageTimer = setTimeout(() => {
+    if (!playing) return;
+    if (current < TOTAL) { showStage(current+1, {replay:true}); scheduleStage(); }
+    else { playing = false; setPlayLabel(); }
+  }, d);
+}
+function play() {
+  if (current === TOTAL && !playing) {
+    // restart
+    playedAt.clear();
+    showStage(1, {replay:true});
+  }
+  playing = true; setPlayLabel(); scheduleStage();
+}
+function pause() { playing = false; setPlayLabel(); clearTimers(); }
+function toggle() { playing ? pause() : play(); }
+
+/* ====== Controls ====== */
+$('#bPrev').addEventListener('click', () => {
+  pause(); if (current>1) { showStage(current-1, {replay:false}); $('#prog').style.width='0%'; }
+});
+$('#bNext').addEventListener('click', () => {
+  pause(); if (current<TOTAL) { showStage(current+1, {replay:true}); $('#prog').style.width='0%'; }
+});
+$('#bPlay').addEventListener('click', toggle);
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowLeft') { $('#bPrev').click(); }
+  else if (e.key === 'ArrowRight') { $('#bNext').click(); }
+  else if (e.key === ' ') { e.preventDefault(); toggle(); }
+});
+
+/* ====== Boot ====== */
+buildANN();
+buildFeatList();
+showStage(1, {replay:true});
+setCounter();
+
+</script>
+</body>
+</html>

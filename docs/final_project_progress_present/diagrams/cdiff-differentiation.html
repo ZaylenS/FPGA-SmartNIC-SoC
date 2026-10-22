@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>C-DIFF — Differentiation Diagram</title>
+<style>
+  :root {
+    --ink: #1a365d;
+    --ink-2: #2d3748;
+    --axis: #4a5568;
+    --muted: #718096;
+    --grid-bg: #ffffff;
+    --badge-bg: #edf2f7;
+    --badge-stroke: #2b6cb0;
+    --box-bg: #f7fafc;
+    --box-stroke: #4a5568;
+    --fortinet-bg: #fef5e7;
+    --fortinet-stroke: #c05621;
+    --cho-stroke: #6b46c1;
+    --ours-bg: #c6f6d5;
+    --ours-stroke: #2f855a;
+    --ours-text: #22543d;
+    --spotlight: #fed7aa;
+    --page-bg: #ffffff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body {
+    width: 100%; height: 100%;
+    background: #0a0a0a; /* letterbox */
+    overflow: hidden;
+    font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif;
+    color: var(--ink);
+  }
+  /* 1920x1080 scaled to viewport */
+  #stage-wrap {
+    position: fixed; inset: 0;
+    display: grid; place-items: center;
+  }
+  #stage {
+    width: 1920px; height: 1080px;
+    background: var(--page-bg);
+    position: relative;
+    transform-origin: center center;
+  }
+  /* Header */
+  .header {
+    position: absolute;
+    top: 40px; left: 60px; right: 60px;
+    display: flex; align-items: baseline; justify-content: space-between;
+    color: var(--ink);
+  }
+  .title {
+    font-size: 22pt; font-weight: 700; letter-spacing: -0.01em;
+  }
+  .title .sub {
+    font-size: 14pt; font-weight: 400; color: var(--axis);
+    margin-left: 14px;
+  }
+  .stage-counter {
+    font-size: 14pt; color: var(--muted); font-variant-numeric: tabular-nums;
+  }
+
+  /* Controls */
+  .controls {
+    position: absolute;
+    bottom: 32px; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 12px; align-items: center;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 999px;
+    padding: 8px 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    z-index: 20;
+  }
+  .btn {
+    border: 1px solid #cbd5e0;
+    background: #fff;
+    color: var(--ink);
+    font: 500 14pt/1 -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif;
+    padding: 10px 18px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: background 120ms, border-color 120ms, color 120ms;
+    min-width: 100px;
+  }
+  .btn:hover { background: #f7fafc; border-color: #a0aec0; }
+  .btn:disabled { color: #a0aec0; border-color: #e2e8f0; cursor: not-allowed; background: #fff;}
+  .btn.play { background: var(--ink); color: #fff; border-color: var(--ink); min-width: 110px; }
+  .btn.play:hover { background: #142a4d; }
+  .btn.play.playing { background: #c05621; border-color: #c05621; }
+  .dot-row { display: flex; gap: 6px; padding: 0 6px; }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: #cbd5e0; transition: background 200ms; }
+  .dot.active { background: var(--ink); }
+
+  /* Caption, anchored under the header */
+  .caption-top {
+    position: absolute;
+    top: 108px;
+    left: 140px; right: 140px;
+    text-align: center;
+    font-size: 16pt; font-style: italic; color: var(--axis);
+    min-height: 44px;
+    line-height: 1.35;
+  }
+  .caption-top .inner {
+    display: inline-block;
+    transition: opacity 300ms ease;
+  }
+
+  /* Diagram region — tightened so x-axis labels + subtitle clear the controls */
+  .diagram {
+    position: absolute;
+    top: 188px;
+    left: 280px;
+    right: 280px;
+    bottom: 200px;
+  }
+  /* Axis labels (outside grid) */
+  .axis-left {
+    position: absolute;
+    left: -220px;
+    top: 0; bottom: 0;
+    width: 210px;
+    display: flex; flex-direction: column; align-items: flex-end; justify-content: space-between;
+    padding: 12px 18px;
+  }
+  .axis-left .end-label {
+    font-size: 22pt; font-weight: 700; color: var(--ink);
+    text-align: right;
+    max-width: 210px;
+    line-height: 1.15;
+  }
+  .axis-subtitle-vert {
+    position: absolute;
+    left: -260px;
+    top: 50%;
+    transform: translateY(-50%) rotate(-90deg);
+    transform-origin: center center;
+    font-size: 14pt; color: var(--axis); font-style: italic;
+    white-space: nowrap;
+  }
+  .axis-bottom {
+    position: absolute;
+    left: 0; right: 0;
+    top: calc(100% + 20px);
+    display: flex; justify-content: space-between;
+    padding: 0 4px;
+  }
+  .axis-bottom .end-label {
+    font-size: 22pt; font-weight: 700; color: var(--ink);
+  }
+  .axis-subtitle-horiz {
+    position: absolute;
+    left: 0; right: 0;
+    top: calc(100% + 68px);
+    text-align: center;
+    font-size: 14pt; color: var(--axis); font-style: italic;
+  }
+
+  /* The 2x2 grid */
+  .grid {
+    position: absolute; inset: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 1fr 1fr;
+    border: 1.5px solid var(--axis);
+    background: #fff;
+  }
+  .grid::before, .grid::after {
+    /* center crosshair lines */
+    content: ''; position: absolute; background: var(--axis);
+    opacity: 0.9;
+  }
+  .grid::before {
+    top: 0; bottom: 0; left: 50%; width: 1.5px; transform: translateX(-0.75px);
+  }
+  .grid::after {
+    left: 0; right: 0; top: 50%; height: 1.5px; transform: translateY(-0.75px);
+  }
+  .quad {
+    position: relative;
+    padding: 52px 28px 28px;
+  }
+  .quad-badge {
+    position: absolute;
+    top: 12px; left: 50%; transform: translateX(-50%);
+    background: var(--badge-bg);
+    border: 1px solid var(--badge-stroke);
+    color: var(--ink);
+    font-size: 16pt; font-weight: 700;
+    padding: 6px 14px;
+    border-radius: 8px;
+    white-space: nowrap;
+    opacity: 0; transition: opacity 300ms ease;
+  }
+  .quad-badge.in { opacity: 1; }
+
+  /* Spotlight for top-right quadrant */
+  .spotlight {
+    position: absolute;
+    inset: 2px 2px 50% 50%;
+    background: radial-gradient(ellipse at center, rgba(254, 215, 170, 0.55) 0%, rgba(254, 215, 170, 0.0) 70%);
+    opacity: 0;
+    transition: opacity 500ms ease;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .spotlight.in { opacity: 1; }
+
+  /* Competitor rows inside quads */
+  .quad-inner {
+    margin-top: 24px;
+    display: flex; flex-direction: column; gap: 14px;
+    align-items: center;
+    position: relative; z-index: 2;
+  }
+
+  .box {
+    width: 300px;
+    background: var(--box-bg);
+    border: 1.5px solid var(--box-stroke);
+    border-radius: 6px;
+    padding: 10px 14px;
+    text-align: center;
+    opacity: 0;
+    transform: translateY(6px);
+    transition: opacity 400ms ease, transform 400ms ease, box-shadow 400ms ease;
+    position: relative;
+  }
+  .box.in { opacity: 1; transform: translateY(0); }
+  .box .label { font-size: 17pt; color: var(--ink-2); font-weight: 600; }
+  .box .sub { font-size: 12.5pt; color: var(--axis); font-style: italic; margin-top: 3px; }
+
+  .box.cho {
+    border-style: dashed;
+    border-color: var(--cho-stroke);
+    border-width: 1.5px;
+  }
+  .box.cho .label { font-style: italic; color: #44337a; }
+  .box.cho .sub { color: #6b46c1; }
+
+  .box.fortinet {
+    background: var(--fortinet-bg);
+    border-color: var(--fortinet-stroke);
+  }
+  .box.fortinet .lock {
+    position: absolute; top: 6px; right: 8px;
+    font-size: 12pt;
+    color: var(--fortinet-stroke);
+  }
+  .box.fortinet.pulse {
+    animation: pulseOrange 1.4s ease 1;
+  }
+  @keyframes pulseOrange {
+    0% { box-shadow: 0 0 0 0 rgba(192, 86, 33, 0.45); }
+    60% { box-shadow: 0 0 0 16px rgba(192, 86, 33, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(192, 86, 33, 0); }
+  }
+
+  .box.ours {
+    background: var(--ours-bg);
+    border-color: var(--ours-stroke);
+    border-width: 3px;
+    width: 330px;
+    padding: 14px 16px;
+  }
+  .box.ours .label { font-size: 19pt; font-weight: 700; color: var(--ours-text); font-style: normal; }
+  .box.ours .sub { font-size: 13.5pt; color: var(--ours-text); }
+  .box.ours.glow {
+    animation: glowGreen 1.6s ease 1;
+  }
+  @keyframes glowGreen {
+    0% { box-shadow: 0 0 0 0 rgba(47, 133, 90, 0.55); }
+    60% { box-shadow: 0 0 0 22px rgba(47, 133, 90, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(47, 133, 90, 0); }
+  }
+
+  /* SVG arc layer */
+  .arrow-layer {
+    position: absolute; inset: 0;
+    pointer-events: none;
+    z-index: 5;
+  }
+  .arrow-path {
+    stroke: var(--cho-stroke);
+    stroke-width: 2;
+    stroke-dasharray: 6 6;
+    fill: none;
+    opacity: 0;
+    transition: opacity 600ms ease, stroke-dashoffset 1200ms ease;
+  }
+  .arrow-path.in { opacity: 1; }
+  .arrow-label {
+    fill: var(--axis);
+    font-style: italic;
+    font-size: 15pt;
+    opacity: 0;
+    transition: opacity 600ms ease 400ms;
+  }
+  .arrow-label.in { opacity: 1; }
+
+
+
+  /* Completion glow */
+  #stage.finale::after {
+    content: '';
+    position: absolute; inset: 0;
+    box-shadow: inset 0 0 0 0 rgba(47, 133, 90, 0);
+    animation: finaleGlow 1.6s ease 1;
+    pointer-events: none;
+  }
+  @keyframes finaleGlow {
+    0%   { box-shadow: inset 0 0 0 0 rgba(47, 133, 90, 0.0); }
+    40%  { box-shadow: inset 0 0 120px 0 rgba(47, 133, 90, 0.18); }
+    100% { box-shadow: inset 0 0 0 0 rgba(47, 133, 90, 0.0); }
+  }
+
+</style>
+</head>
+<body>
+<div id="stage-wrap">
+  <div id="stage">
+    <!-- Header -->
+    <div class="header">
+      <div class="title">Differentiation<span class="sub">— where detection runs × how detection works</span></div>
+      <div class="stage-counter" id="counter">Stage 1 of 5</div>
+    </div>
+
+    <!-- Diagram -->
+    <div class="diagram">
+      <!-- Y axis -->
+      <div class="axis-left">
+        <div class="end-label">Inline at NIC</div>
+        <div class="end-label">Off-NIC<br><span style="font-size:16pt; font-weight:500; color:var(--axis);">(host CPU / host GPU / cloud)</span></div>
+      </div>
+      <div class="axis-subtitle-vert">packet crosses PCIe ↔ packet stays on the NIC</div>
+
+      <!-- X axis -->
+      <div class="axis-bottom">
+        <div class="end-label">Signature / Pattern matching</div>
+        <div class="end-label" style="text-align:right;">ML classification</div>
+      </div>
+      <div class="axis-subtitle-horiz">known attacks only ↔ learned, including novel attacks</div>
+
+      <!-- Grid -->
+      <div class="grid" id="grid">
+        <!-- Top-left: Inline + Signature -->
+        <div class="quad" id="q-tl">
+          <div class="quad-badge" id="badge-tl">Inline signature matching</div>
+          <div class="quad-inner">
+            <div class="box" data-q="tl" data-i="0">
+              <div class="label">NVIDIA BlueField DPI</div>
+              <div class="sub">DOCA regex</div>
+            </div>
+            <div class="box" data-q="tl" data-i="1">
+              <div class="label">AMD Pensando</div>
+              <div class="sub">P4 match-action</div>
+            </div>
+            <div class="box cho" id="box-cho" data-q="tl" data-i="2">
+              <div class="label">Prof Cho 2005</div>
+              <div class="sub">FPGA pattern co-processor (DAC ’05) — influential prior work</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Top-right: Inline + ML  (the novel quadrant) -->
+        <div class="quad" id="q-tr">
+          <div class="spotlight" id="spotlight"></div>
+          <div class="quad-badge" id="badge-tr">Inline ML classification</div>
+          <div class="quad-inner" id="tr-inner">
+            <div class="box fortinet" id="box-fortinet" data-q="tr" data-i="0">
+              <span class="lock" aria-hidden="true">🔒</span>
+              <div class="label">Fortinet SP5</div>
+              <div class="sub">proprietary ASIC, closed</div>
+            </div>
+            <div class="box ours" id="box-ours" data-q="tr" data-i="1">
+              <div class="label">Our SoC</div>
+              <div class="sub">open RTL, student-built, programmable</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom-left: Off-NIC + Signature -->
+        <div class="quad" id="q-bl">
+          <div class="quad-badge" id="badge-bl">Off-NIC signature IDS</div>
+          <div class="quad-inner">
+            <div class="box" data-q="bl" data-i="0">
+              <div class="label">Snort / Suricata</div>
+              <div class="sub">software, x86 CPU</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom-right: Off-NIC + ML -->
+        <div class="quad" id="q-br">
+          <div class="quad-badge" id="badge-br">Off-NIC ML IDS</div>
+          <div class="quad-inner">
+            <div class="box" data-q="br" data-i="0">
+              <div class="label">CrowdStrike</div>
+              <div class="sub">cloud ML</div>
+            </div>
+            <div class="box" data-q="br" data-i="1">
+              <div class="label">Zscaler</div>
+              <div class="sub">cloud ML</div>
+            </div>
+            <div class="box" data-q="br" data-i="2">
+              <div class="label">Darktrace</div>
+              <div class="sub">cloud NDR</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Prior-art arc overlay (path coords computed at runtime from box positions) -->
+        <svg class="arrow-layer" id="arrow-svg" preserveAspectRatio="none">
+          <defs>
+            <marker id="arrowhead" viewBox="0 0 10 10" refX="9" refY="5"
+                    markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+              <path d="M 0 0 L 10 5 L 0 10 z" fill="#6b46c1"/>
+            </marker>
+          </defs>
+          <path id="arc" class="arrow-path" d="" marker-end="url(#arrowhead)"/>
+          <text id="arc-label" class="arrow-label" text-anchor="middle">informed by</text>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Caption (above the diagram, under the header) -->
+    <div class="caption-top"><span class="inner" id="caption">Two axes matter for network intrusion detection — what you detect, and where you detect it.</span></div>
+
+    <!-- Controls -->
+    <div class="controls">
+      <button class="btn" id="prev">← Prev</button>
+      <button class="btn play" id="play">▶  Play</button>
+      <button class="btn" id="next">Next →</button>
+      <div class="dot-row" id="dots"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* --------------- viewport scaling --------------- */
+(function scale() {
+  const stage = document.getElementById('stage');
+  function fit() {
+    const sx = window.innerWidth / 1920;
+    const sy = window.innerHeight / 1080;
+    const s = Math.min(sx, sy);
+    stage.style.transform = `scale(${s})`;
+  }
+  fit();
+  window.addEventListener('resize', fit);
+})();
+
+/* --------------- stage engine --------------- */
+const TOTAL = 5;
+const AUTOPLAY_DELAY = 8000;
+
+const captions = {
+  1: "Two axes matter for network intrusion detection — what you detect, and where you detect it.",
+  2: "Four combinations. Each has real tradeoffs.",
+  3: "Three quadrants have established players — software signature engines, NIC regex accelerators, and cloud-based ML.",
+  4: "Inline ML classification at the NIC is nearly empty. One shipping product — Fortinet’s SP5 — sits here, but it’s a closed proprietary ASIC.",
+  5: "Ours is the open, programmable entry in this quadrant — the same design philosophy Prof Cho’s 2005 co-processor pioneered, now applied to ML classification."
+};
+
+const els = {
+  counter: document.getElementById('counter'),
+  caption: document.getElementById('caption'),
+  captionWrap: document.querySelector('.caption-top .inner'),
+  badges: {
+    tl: document.getElementById('badge-tl'),
+    tr: document.getElementById('badge-tr'),
+    bl: document.getElementById('badge-bl'),
+    br: document.getElementById('badge-br'),
+  },
+  spotlight: document.getElementById('spotlight'),
+  fortinet: document.getElementById('box-fortinet'),
+  ours: document.getElementById('box-ours'),
+  arc: document.getElementById('arc'),
+  arcLabel: document.getElementById('arc-label'),
+  arcSvg: document.getElementById('arrow-svg'),
+  gridEl: document.getElementById('grid'),
+  boxCho: document.getElementById('box-cho'),
+  stage: document.getElementById('stage'),
+  prev: document.getElementById('prev'),
+  next: document.getElementById('next'),
+  play: document.getElementById('play'),
+  dots: document.getElementById('dots'),
+};
+const allBoxes = Array.from(document.querySelectorAll('.box'));
+
+// build dots
+for (let i = 0; i < TOTAL; i++) {
+  const d = document.createElement('div');
+  d.className = 'dot';
+  els.dots.appendChild(d);
+}
+const dotEls = Array.from(els.dots.children);
+
+let stage = Number(localStorage.getItem('cdiff-stage') || 1);
+if (stage < 1 || stage > TOTAL) stage = 1;
+let autoplay = false;
+let autoplayTimer = null;
+
+function setBadge(key, on) {
+  els.badges[key].classList.toggle('in', on);
+}
+function setBoxes(q, count) {
+  const boxes = allBoxes.filter(b => b.dataset.q === q);
+  boxes.forEach((b, i) => b.classList.toggle('in', i < count));
+}
+function clearAll() {
+  Object.keys(els.badges).forEach(k => setBadge(k, false));
+  allBoxes.forEach(b => b.classList.remove('in'));
+  els.spotlight.classList.remove('in');
+  els.fortinet.classList.remove('pulse');
+  els.ours.classList.remove('glow');
+  els.arc.classList.remove('in');
+  els.arcLabel.classList.remove('in');
+  els.stage.classList.remove('finale');
+}
+
+function applyStage(n, opts = {}) {
+  const { animate = true } = opts;
+  stage = n;
+  localStorage.setItem('cdiff-stage', String(stage));
+  els.counter.textContent = `Stage ${n} of ${TOTAL}`;
+  dotEls.forEach((d, i) => d.classList.toggle('active', i < n));
+
+  // caption crossfade
+  els.captionWrap.style.opacity = 0;
+  setTimeout(() => {
+    els.caption.textContent = captions[n];
+    els.captionWrap.style.opacity = 1;
+  }, animate ? 160 : 0);
+
+  // reset then apply cumulative state
+  clearAll();
+
+  // Stage >=2 — quadrant badges
+  if (n >= 2) {
+    const order = ['bl', 'tl', 'br', 'tr'];
+    order.forEach((k, i) => {
+      if (animate) setTimeout(() => setBadge(k, true), 80 + i * 300);
+      else setBadge(k, true);
+    });
+  }
+
+  // Stage >=3 — three quadrants fill
+  if (n >= 3) {
+    const fills = [
+      ['bl', 1],
+      ['tl', 3],
+      ['br', 3],
+    ];
+    if (animate) {
+      let delay = 200;
+      fills.forEach(([q, count]) => {
+        const boxes = allBoxes.filter(b => b.dataset.q === q);
+        boxes.slice(0, count).forEach((b) => {
+          setTimeout(() => b.classList.add('in'), delay);
+          delay += 300;
+        });
+      });
+    } else {
+      fills.forEach(([q, count]) => setBoxes(q, count));
+    }
+  }
+
+  // Stage >=4 — spotlight + Fortinet
+  if (n >= 4) {
+    const spotDelay = animate ? 300 : 0;
+    setTimeout(() => els.spotlight.classList.add('in'), spotDelay);
+    const fortDelay = animate ? 800 : 0;
+    setTimeout(() => {
+      els.fortinet.classList.add('in');
+      if (animate) {
+        // trigger pulse after fade
+        setTimeout(() => els.fortinet.classList.add('pulse'), 500);
+      }
+    }, fortDelay);
+  }
+
+  // Stage >=5 — Our SoC + arc + finale glow
+  if (n >= 5) {
+    const oursDelay = animate ? 400 : 0;
+    setTimeout(() => {
+      els.ours.classList.add('in');
+      if (animate) setTimeout(() => els.ours.classList.add('glow'), 400);
+    }, oursDelay);
+    const arcDelay = animate ? 1400 : 0;
+    setTimeout(() => {
+      computeArc();
+      els.arc.classList.add('in');
+      els.arcLabel.classList.add('in');
+    }, arcDelay);
+    const finaleDelay = animate ? 2400 : 0;
+    setTimeout(() => els.stage.classList.add('finale'), finaleDelay);
+  }
+
+  // Buttons
+  els.prev.disabled = n <= 1;
+  els.next.disabled = n >= TOTAL;
+}
+
+function computeArc() {
+  const gridRect = els.gridEl.getBoundingClientRect();
+  const choRect = els.boxCho.getBoundingClientRect();
+  const oursRect = els.ours.getBoundingClientRect();
+  if (!gridRect.width || !choRect.width || !oursRect.width) return;
+
+  // Convert to grid-local coords
+  const sx = x => x - gridRect.left;
+  const sy = y => y - gridRect.top;
+
+  // Start: top-center of Cho box; End: top-center of Our SoC box
+  const startX = sx(choRect.left + choRect.width / 2);
+  const startY = sy(choRect.top);
+  const endX   = sx(oursRect.left + oursRect.width / 2);
+  const endY   = sy(oursRect.top);
+
+  // Control points pull upward for a gentle arc
+  const midY = Math.min(startY, endY) - 120;
+  const c1x = startX + (endX - startX) * 0.25;
+  const c2x = startX + (endX - startX) * 0.75;
+
+  // Set SVG size to match grid
+  els.arcSvg.setAttribute('width', gridRect.width);
+  els.arcSvg.setAttribute('height', gridRect.height);
+  els.arcSvg.setAttribute('viewBox', `0 0 ${gridRect.width} ${gridRect.height}`);
+
+  els.arc.setAttribute('d', `M ${startX} ${startY} C ${c1x} ${midY}, ${c2x} ${midY}, ${endX} ${endY}`);
+
+  // Label at the apex
+  const labelX = (startX + endX) / 2;
+  const labelY = midY + 18;
+  els.arcLabel.setAttribute('x', labelX);
+  els.arcLabel.setAttribute('y', labelY);
+}
+window.addEventListener('resize', () => { if (stage >= 5) computeArc(); });
+
+function go(n) {
+  if (n < 1 || n > TOTAL) return;
+  applyStage(n, { animate: true });
+}
+function stopAutoplay() {
+  autoplay = false;
+  if (autoplayTimer) clearTimeout(autoplayTimer);
+  autoplayTimer = null;
+  els.play.classList.remove('playing');
+  els.play.textContent = '▶  Play';
+}
+function startAutoplay() {
+  autoplay = true;
+  els.play.classList.add('playing');
+  els.play.textContent = '■  Stop';
+  // if we are at end, restart from 1
+  if (stage >= TOTAL) go(1);
+  scheduleNextAutoplay();
+}
+function scheduleNextAutoplay() {
+  if (!autoplay) return;
+  if (autoplayTimer) clearTimeout(autoplayTimer);
+  autoplayTimer = setTimeout(() => {
+    if (!autoplay) return;
+    if (stage < TOTAL) {
+      go(stage + 1);
+      scheduleNextAutoplay();
+    } else {
+      // finished
+      stopAutoplay();
+    }
+  }, AUTOPLAY_DELAY);
+}
+
+els.prev.addEventListener('click', () => { stopAutoplay(); go(stage - 1); });
+els.next.addEventListener('click', () => { stopAutoplay(); go(stage + 1); });
+els.play.addEventListener('click', () => {
+  if (autoplay) stopAutoplay(); else startAutoplay();
+});
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowLeft')   { stopAutoplay(); go(stage - 1); }
+  else if (e.key === 'ArrowRight') { stopAutoplay(); go(stage + 1); }
+  else if (e.key === ' ') { e.preventDefault(); if (autoplay) stopAutoplay(); else startAutoplay(); }
+});
+
+// init
+applyStage(stage, { animate: false });
+</script>
+</body>
+</html>

@@ -1,0 +1,123 @@
+flowchart TB
+    IN["8 x NF2 ingress<br/>64 data + 8 ctrl + wr/rdy"]
+    OUT["8 x NF2 egress<br/>64 data + 8 ctrl + wr/rdy"]
+    CPCI["CPCI register master<br/>23-bit word address / 32-bit data"]
+    SRAM["External SRAM<br/>used only by output_queues"]
+
+    subgraph UDP["user_data_path - one clk/reset"]
+        IA["input_arbiter<br/>stage 2"]
+        OPL["output_port_lookup<br/>stage 4"]
+        OQ["output_queues<br/>stage 6"]
+        URM["udp_reg_master"]
+
+        subgraph W["lab8_wrapper"]
+            RING["Registered register-ring stage<br/>block decode + 32-bit register bank<br/>44 implemented offsets through 0x30"]
+            RESET["Reset/control<br/>FIFO: reset OR one-shot soft reset<br/>CPU: reset OR CPU_CTRL[1]<br/>GPU: reset OR GPU_CTRL[0]<br/>DMA: system reset only"]
+            MODE["FIFO_MODE[1:0]<br/>0 capture/drain<br/>1 CPU or PCI proc access<br/>2 DMA or PCI proc access"]
+            ALIASMUX["ARM alias window 0xF0-0xFF<br/>DMA, GPU, FIFO control/status"]
+            CYCLE["GPU cycle counter<br/>reset-release to kernel_done"]
+
+            subgraph F["convertible_fifo"]
+                FINA["Ingress handshake<br/>Port A writes {ctrl,data}<br/>only while mode 0"]
+                FFSM["6-state packet FSM<br/>IDLE / RECEIVE / BUFFERED<br/>WAIT1 / WAIT2 / DRAIN"]
+                FBRAM["fifo_bram<br/>256 x 72 true dual-port<br/>synchronous read"]
+                FBMUX["Physical Port B mode mux<br/>mode 0/default: rd_ptr drain<br/>mode 1/2: proc bus"]
+                FOUT["drain_word_reg + out_wr<br/>count-based packet release"]
+                FINA -->|"Port A"| FBRAM
+                FFSM -.-> FINA
+                FFSM -.-> FBMUX
+                FBRAM --> FBMUX --> FOUT
+            end
+
+            PROCMUX["Wrapper FIFO-proc source mux<br/>mode1 + running: CPU<br/>mode2 + DMA active: DMA<br/>otherwise: PCI BRAM registers"]
+
+            subgraph A["ARM processor"]
+                ASCHED["2-bit round-robin scheduler<br/>four 11-bit PCs"]
+                AIMEM["512 x 32 IMEM"]
+                APIPE["IF/ID -> ID/RF -> ID/EX -><br/>shifter + 64-bit ALU -> EX/MEM -><br/>MEM + WB mux"]
+                ACPSR["4 x CPSR + halted bits"]
+                ADMEM["MEM windows<br/>00-7F local DMEM<br/>80-EF FIFO<br/>F0-FF aliases"]
+                ALA["2048 x 64 logic analyzer"]
+                ASCHED --> AIMEM --> APIPE --> ADMEM
+                ADMEM -->|"WB"| APIPE
+                APIPE -.-> ACPSR
+                APIPE -.-> ALA
+            end
+
+            subgraph D["DMA engine"]
+                DFSM["IDLE -> READ prime -> COPY<br/>latched dir/base/length"]
+                DPTR["FIFO addr 8b / GPU addr 10b<br/>64-bit payload<br/>one word/cycle in COPY"]
+                DFSM --> DPTR
+            end
+
+            GDMUX["GPU DMEM-B mux<br/>DMA while active<br/>otherwise PCI"]
+
+            subgraph G["gpu_top"]
+                GIMEM["1024 x 32 IMEM<br/>dual-port"]
+                GPC["10-bit PC + fetch valid"]
+                GDEC["decoder + 16 x 64 RF<br/>hazard stall / branch flush"]
+                GEX["EX1 / EX2 / EX3<br/>4 BF16 ALUs + 4 BF16 FMAs<br/>1 scalar INT16 lane replicated"]
+                GDMEM["1024 x 64 DMEM<br/>dual-port"]
+                GWB["WB + sticky kernel_done"]
+                GPC --> GIMEM --> GDEC --> GEX --> GWB
+                GEX <--> GDMEM
+                GWB --> GDEC
+            end
+
+            OPLSTREAM["wrapper stream input"] --> FINA
+            FOUT --> OQSTREAM["wrapper stream output"]
+
+            ADMEM <-->|"CPU 64-bit FIFO window"| PROCMUX
+            DPTR <-->|"DMA FIFO side"| PROCMUX
+            RING <-->|"PCI BRAM access"| PROCMUX
+            PROCMUX <-->|"72-bit proc bus"| FBMUX
+
+            DPTR <-->|"DMA GPU side"| GDMUX
+            RING <-->|"PCI GPU DMEM"| GDMUX
+            GDMUX <-->|"64-bit external Port B"| GDMEM
+            RING <--> AIMEM
+            RING <--> ADMEM
+            RING <--> ALA
+            RING <--> GIMEM
+            RING <--> ALIASMUX
+            ALIASMUX <--> ADMEM
+
+            RING -.-> RESET
+            RING -.-> MODE
+            MODE -.-> FINA
+            MODE -.-> FBMUX
+            MODE -.-> PROCMUX
+            RESET -.-> FFSM
+            RESET -.-> ASCHED
+            RESET -.-> GPC
+            RESET -.-> DFSM
+            GWB -.-> CYCLE
+            CYCLE --> RING
+        end
+
+        IA --> OPL --> OPLSTREAM
+        OQSTREAM --> OQ
+        URM -.-> IA
+        IA -.-> OPL
+        OPL -.-> RING
+        RING -.-> OQ
+        OQ -.-> URM
+    end
+
+    IN --> IA
+    OQ --> OUT
+    OQ <--> SRAM
+    CPCI <--> URM
+
+    MODE0["Mode/sequence requirements<br/>Capture and drain only in mode 0.<br/>Keep mode 2 stable for all DMA cycles.<br/>Return to mode 0 before drain.<br/>Drain is reliable only with continuous out_rdy."]
+    MODE0 -.-> MODE
+
+    classDef pipe fill:#eef1f4,stroke:#66717d,color:#1f2933;
+    classDef compute fill:#e8f5e9,stroke:#367a42,color:#17351e;
+    classDef memory fill:#fff3d6,stroke:#a76b00,color:#4f3400;
+    classDef control fill:#f1e9fb,stroke:#72509b,color:#352046;
+    classDef network fill:#e8f1fb,stroke:#245b8a,color:#102a43;
+    class IN,OUT,IA,OPL,OQ,OPLSTREAM,OQSTREAM network;
+    class APIPE,GDEC,GEX,GWB compute;
+    class FBRAM,AIMEM,ADMEM,ALA,GIMEM,GDMEM,SRAM memory;
+    class CPCI,URM,RING,RESET,MODE,ALIASMUX,CYCLE,FFSM,PROCMUX,DFSM,GDMUX,GPC,ACPSR,MODE0 control;

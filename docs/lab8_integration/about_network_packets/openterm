@@ -1,0 +1,22 @@
+#!/bin/bash
+if [ "$#" -le 1 ];then
+	echo "$0 <TEAM #> <PASSWD>"
+	exit 0
+fi
+ND=$(($1 % 5))
+LL=$(($1 + 1))
+CM=$LL"q;d"
+PW=$2
+CL=$(( $(($1 / 5)) * 5))
+M0=$(($ND + $CL))
+M1=$(( $(( $(($ND + 1)) % 5)) + $CL))
+M2=$(( $(( $(($ND + 2)) % 5)) + $CL))
+M3=$(( $(( $(($ND + 3)) % 5)) + $CL))
+M4=$(( $(( $(($ND + 4)) % 5)) + $CL))
+
+gnome-terminal -- bash -c "sshpass -p $PW ssh -o StrictHostKeyChecking=no netfpga@nf$M0.usc.edu" &
+gnome-terminal -- bash -c "sshpass -p $PW ssh -o StrictHostKeyChecking=no node$ND@nf$M1.usc.edu" &
+gnome-terminal -- bash -c "sshpass -p $PW ssh -o StrictHostKeyChecking=no node$ND@nf$M2.usc.edu" &
+gnome-terminal -- bash -c "sshpass -p $PW ssh -o StrictHostKeyChecking=no node$ND@nf$M3.usc.edu" &
+gnome-terminal -- bash -c "sshpass -p $PW ssh -o StrictHostKeyChecking=no node$ND@nf$M4.usc.edu" &
+

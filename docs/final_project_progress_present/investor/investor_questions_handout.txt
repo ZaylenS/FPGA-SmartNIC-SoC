@@ -1,0 +1,76 @@
+Investor Interview — Questions (sent to you in advance so you can think
+them over before we talk)
+=========================================================================
+
+Thanks for agreeing to sit for a short interview for my final project.
+
+Quick context
+-------------
+* I'm building a hardware-accelerated machine-learning intrusion detection
+  system — basically a network card (FPGA-based SmartNIC) that classifies
+  traffic with a small neural network on-chip instead of sending every
+  packet to a CPU or GPU server.
+* The final deliverable is a short video (90–120 seconds total), split
+  into three audience-specific segments. The part you're helping with is
+  aimed at investors / commercial reviewers and has to answer one question:
+  "is there a real market here, or is this just a cool demo?"
+* I'll probably ask 5–7 of the questions below over ~10–15 minutes. I'll
+  use a ~60 second clip from the recording in the final video.
+* Please confirm at the start of the call that you're OK with me
+  recording and publishing (only in the class) a short clip. I'll send you the final cut
+  before anything goes public.
+* Feel free to speak plainly. Skepticism is more useful than polite endorsement — the
+  goal is an honest take, not a commercial.
+
+
+Main questions (5)
+------------------
+
+1. How big do you think this market is today, in dollars? Billions?
+   Tens of billions?
+
+2. If a startup had this working tomorrow, who would buy it first —
+   banks, telcos, cloud providers, government, or enterprise?
+
+3. NVIDIA BlueField and AMD Pensando already ship programmable
+   SmartNICs. Can a startup win against them, yes or no?
+
+4. What budget would a CISO realistically approve for one of these
+   security boxes — $10K, $100K, $1M+?
+
+5. If this company pitched you tomorrow, would you want to invest?
+   Yes or no, and why?
+
+
+Possible follow-ups (only if we have time)
+------------------------------------------
+
+6. Is any current regulation — PCI-DSS, HIPAA, CMMC, EU AI Act, SEC
+   cyber-disclosure — strong enough on its own to force a purchase
+   cycle we could ride?
+
+7. Why 2026 and not 2020? What's changed to make this a live
+   opportunity now?
+
+8. When a strategic like Broadcom, Cisco, or NVIDIA acquires a
+   company like this, what are they actually paying for — the chip,
+   the software, the customer base, or the team?
+
+9. If this product existed and worked today, would you deploy it in
+   your own network? Yes or no?
+
+10. Put yourself in a security buyer's seat. What argument actually
+    makes the dollar justify itself — avoided breach cost, compliance,
+    performance headroom, something else?
+
+
+No prep required
+----------------
+You don't need slides, numbers, or homework. A direct gut answer on
+each question is exactly what works best on video. If any question
+doesn't apply to your experience, just say so and we'll skip it.
+
+Happy to share more about the underlying technology if it would help
+you answer any of these more concretely — just ask.
+
+— Zilin

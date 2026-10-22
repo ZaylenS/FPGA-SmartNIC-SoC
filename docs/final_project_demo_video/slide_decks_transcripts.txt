@@ -1,0 +1,191 @@
+================================================================
+SLIDE-DECK VOICEOVER TRANSCRIPTS — for OBS recording
+
+Pause markers (read but don't speak them):
+  ↘   = short pause (~0.5 s)
+  ↘↘  = longer pause = paragraph break (~1 s)
+  CAPS in mid-sentence = emphasis word (read with slight stress)
+
+This file covers ONLY the 3 slide decks.
+Skipped: Beat 2d (audio-only post-deck clips), Beats 5/6/7, closing —
+those are recorded separately, no slides.
+
+Total estimated runtime across the 3 decks: ~7 min
+  Deck 1: ~110 s    Deck 2: ~145 s    Deck 3: ~140 s
+================================================================
+
+
+================================================================
+DECK 1 — Opening.html       Beats 0 → 2c       ~110 s
+================================================================
+
+
+--- STAGE 1 — Beat 0 — Title (~15 s) ---
+
+Hi, I'm Zilin Shao. ↘ This is the EE-five-three-three final project: ↘ a custom network processor that runs a machine-learning intrusion detection system on FPGA.
+
+
+--- STAGE 2 — Beat 1 — Classifier architecture (~36 s) ---
+
+The classifier is a small fully-connected neural network. ↘ Eleven inputs — ↘ packet features that I'll explain in a moment. ↘ Two hidden layers of sixteen and eight neurons with ReLU activations. ↘ Two outputs: ↘ a normal score and an attack score.
+
+Three hundred and forty-six total parameters — ↘ that's six hundred and ninety-two bytes at BF-sixteen precision. ↘ Small enough to fit comfortably in the GPU's data memory, ↘ alongside the inputs and intermediate activations.
+
+The weights are quantization-aware-trained — ↘ the network was trained knowing it would run in BF-sixteen on silicon, ↘ so the deployed numerics are faithful to what trained.
+
+Inference runs inline — ↘ the model executes as packets traverse the FPGA, ↘ between ingress and egress.
+
+
+--- STAGE 3 — Beat 2a — Dataset (~22 s) ---
+
+We trained on NSL-KDD — ↘ the de-duplicated cleanup of the classic KDD'99 intrusion-detection benchmark. ↘ A hundred and twenty-six thousand training samples, ↘ twenty-two and a half thousand test samples in KDDTest-plus.
+
+NSL-KDD ships with forty-one features per connection. ↘ We rank them by random-forest importance ↘ and keep the top eleven. ↘ Two of those — source-bytes and destination-bytes — ↘ carry most of the signal.
+
+
+--- STAGE 4 — Beat 2b — Training methodology (~22 s) ---
+
+Training: ↘ Adam optimizer, ↘ two hundred epochs with cosine learning-rate decay, ↘ batch size two hundred and fifty-six, ↘ cross-entropy loss with label smoothing of zero point one.
+
+We swept fifteen random seeds and kept seed fifty-three.
+
+The best-validation checkpoint comes from early in training — ↘ label smoothing reduces overfitting fast at this network size.
+
+Final step: ↘ quantization-aware training, which makes the deployed weights faithful to B-F-sixteen at inference time.
+
+
+--- STAGE 5 — Beat 2c — Result reveal (~15 s) ---
+
+On the dev baseline, the model hits EIGHTY-TWO POINT FOUR PERCENT accuracy on KDDTest-plus — ↘ twenty-two thousand five hundred and forty-four samples, evaluated faithfully in BF-sixteen. ↘ Attack recall is eighty-six percent on the dev machine.
+
+Next, ↘ a quick demo of how this trains, ↘ then on to the hardware architecture.
+
+
+================================================================
+DECK 2 — Network Processor Walkthrough.html       Beat 3       ~145 s
+================================================================
+
+
+--- STAGE 1 — Beat 3.1 — The chip (~17 s) ---
+
+This is the SoC. ↘ One FPGA.
+
+Convertible FIFO at the center. ↘ Port B muxes between PCI, ARM, and DMA based on the FIFO_MODE register.
+
+The ARM has an address-alias window into the chip's register space, ↘ which lets it orchestrate FIFO, DMA, and GPU on its own — ↘ without the host involved.
+
+And there is one honest disclosure: ↘ the upstream feature extraction is mocked — ↘ on our testing, packets arrive with eleven pre-extracted features in the payload.
+
+
+--- STAGE 2 — Beat 3.2 — Packet arrives, ARM orchestrates (~32 s) ---
+
+A packet arrives from the network. ↘ It lands in the FIFO BRAM through Port A.
+
+The BRAM is laid out word by word — ↘ the NetFPGA framing header at word zero, ↘ the Ethernet, IP, and UDP headers at words one through six, ↘ and the eleven feature values for this packet — pre-extracted BF-sixteen values — at words seven through seventeen.
+
+The ARM CPU — running on its orchestrator thread — polls the FIFO status register, ↘ waits for the packet-ready bit, ↘ then writes the FIFO mode register: ↘ mode equals two. ↘ That flips the Port B mux from PCI to the DMA engine.
+
+The ARM does not parse the packet itself. ↘ It's just the orchestrator, ↘ not the classifier.
+
+
+--- STAGE 3 — Beat 3.3 — DMA streams to GPU (~32 s) ---
+
+The ARM programs the DMA engine — ↘ source, destination, length, then a start command.
+
+The DMA pulls the eleven feature words from FIFO BRAM and pipes them into the GPU's data memory — ↘ one word per cycle, fully pipelined. ↘ Each word is a BF-sixteen feature value replicated across all four SIMD lanes; ↘ the kernel works in lane-replicated mode.
+
+Meanwhile, the ARM polls the DMA's start bit, ↘ which auto-clears when the DMA finishes — ↘ that's how ARM and DMA stay in sync.
+
+The GPU's program is already in instruction memory, loaded at boot. ↘ Now the GPU is ready to classify.
+
+
+--- STAGE 4 — Beat 3.4 — GPU classifies (~32 s) ---
+
+The GPU has a custom ISA — ↘ standard ALU and memory ops, ↘ plus our own cross-lane primitive BCAST, which I'll cover in a moment.
+
+Four SIMD lanes, BF-sixteen, ↘ running the eleven-sixteen-eight-two ANN.
+
+A hardware cycle counter on the FPGA reads SEVEN HUNDRED AND THIRTY-TWO cycles for the full classification — ↘ that's with BCAST.
+
+At the end, the GPU writes a two-element BF-sixteen verdict back to its data memory. ↘ For this packet — a real attack sample from our test set — ↘ the normal logit reads negative five point five, ↘ the attack logit reads positive eight point eight. ↘ Clearly an attack.
+
+
+--- STAGE 5 — Beat 3.5 — Response packet out (~32 s) ---
+
+The ARM programs the DMA again, ↘ this time in reverse — ↘ GPU-to-FIFO, copying the two BF-sixteen logits back into the response area of the FIFO BRAM. ↘ ARM polls until the DMA finishes.
+
+Then the ARM rewrites the response packet's headers in BRAM: ↘ swap source and destination MAC addresses, ↘ swap source and destination IP addresses, ↘ write the UDP ports. ↘ The packet now routes back to whoever sent it.
+
+The ARM flips the FIFO mode register from two to one — ↘ Port B mux now points back at the ARM — ↘ and sets the drain bit. ↘ The verdict packet leaves over the wire through Port A.
+
+That's the architectural claim of this build: ↘ a small ML model, ↘ running on a custom GPU inside a single FPGA, ↘ classifying each packet's feature vector ↘ on-die.
+
+
+================================================================
+DECK 3 — beat4_bcast.html       Beat 4       ~140 s
+================================================================
+
+
+--- STAGE 1 — Beat 4.1 — The waste, scalar mode (~22 s) ---
+
+Our GPU has a four-lane SIMD datapath — ↘ every arithmetic instruction operates element-wise across all four lanes.
+
+But the base ISA has no cross-lane operations. ↘ So for a multi-layer network, every value is pre-replicated across all four lanes: ↘ R3 equals x-of-i, x-of-i, x-of-i, x-of-i.
+
+All four lanes compute the same thing. ↘ Three of four are wasted. ↘ Twenty-five percent SIMD utilization.
+
+
+--- STAGE 2 — Beat 4.2 — The inter-layer barrier (~24 s) ---
+
+So why scalar mode? ↘ Because multi-layer networks force it.
+
+Layer N's four outputs sit in one register — ↘ h-three, h-two, h-one, h-zero, ↘ one per lane. ↘ Layer N-plus-one needs each output broadcast across all four lanes as the next layer's input.
+
+Our base ISA had no instruction for that. ↘ M-O-V-I broadcasts a CONSTANT, ↘ not a register value.
+
+No horizontal sum, no lane shuffle. ↘ So scalar mode.
+
+
+--- STAGE 3 — Beat 4.3 — The hardware fix: 4:1 mux in EX1 (~26 s) ---
+
+The fix is a four-to-one lane mux added in EX1, ↘ right before the per-lane ALU dispatch.
+
+When the opcode is B-CAST, ↘ the mux selects one lane of the source register — ↘ chosen by two bits from the instruction — ↘ and replicates it across all four output lanes. ↘ The per-lane ALUs pass it through.
+
+Sixty-five lookup tables — ↘ about a tenth of a percent of the chip. ↘ Zero new flip-flops; ↘ the mux is purely combinational.
+
+
+--- STAGE 4 — Beat 4.4 — The ISA fix: a new opcode (~24 s) ---
+
+On the ISA side, ↘ B-CAST is the GPU's twelfth opcode.
+
+The lane select is encoded in the bottom two bits of the func field — ↘ reusing existing instruction bits, ↘ so no new control signal width was needed.
+
+In assembly, ↘ B-CAST takes three operands — ↘ destination, source, and lane.
+
+Two-cycle latency, ↘ same as a M-O-V.
+
+
+--- STAGE 5 — Beat 4.5 — The kernel transformation (~26 s) ---
+
+A single B-CAST instruction reshapes the inner loop.
+
+Before, ↘ the kernel had to interleave two neurons across the four lanes — ↘ seven cycles per neuron.
+
+With B-CAST, ↘ we pack four neurons' weights into one register, ↘ broadcast the input across all four lanes, ↘ and a single FMA computes all four neurons at once.
+
+Same fourteen cycles per iteration, ↘ but now four neurons — ↘ that's three-and-a-half cycles per neuron, ↘ and SIMD utilization climbs from twenty-five to one hundred percent.
+
+
+--- STAGE 6 — Beat 4.6 — The result (~18 s) ---
+
+Measured cycle-exact on the FPGA, ↘ the classifier went from twenty-four hundred and two cycles down to seven hundred and thirty-two — ↘ a THREE-POINT-TWO-EIGHT times speedup.
+
+Layers one and two both roughly halve; ↘ layer three doesn't change, ↘ because with only two output neurons we can't fill four lanes.
+
+One new opcode, ↘ sixty-five lookup tables, ↘ and a kernel rewrite — ↘ that's what owning the GPU end-to-end lets you do.
+
+
+================================================================
+END OF SLIDE-DECK TRANSCRIPTS
+================================================================

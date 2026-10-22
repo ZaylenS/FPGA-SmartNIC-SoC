@@ -1,0 +1,208 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2900" height="1750" viewBox="0 0 2900 1750" role="img" aria-labelledby="title desc">
+  <title id="title">Detailed GPU Microarchitecture</title>
+  <desc id="desc">Six-stage custom GPU with dual-port instruction and data memories, decoder and register file, stall-only hazards, EX1 branch resolution, scalarized INT16 execution, four BF16 ALU lanes, and four BF16 FMA lanes.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#243447"/></marker>
+    <marker id="ctrlArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#72509b"/></marker>
+    <style>
+      .bg{fill:#fff}.outer{fill:#f8fafc;stroke:#334e68;stroke-width:2.5}.group{fill:#fff;stroke:#627d98;stroke-width:2}.pipe{fill:#eef1f4;stroke:#66717d;stroke-width:2}.compute{fill:#e8f5e9;stroke:#367a42;stroke-width:2}.memory{fill:#fff3d6;stroke:#a76b00;stroke-width:2}.control{fill:#f1e9fb;stroke:#72509b;stroke-width:2}.warn{fill:#fff0e6;stroke:#b45309;stroke-width:2}.title{font:700 36px 'Segoe UI',sans-serif;fill:#102a43}.subtitle{font:600 24px 'Segoe UI',sans-serif;fill:#243b53}.stage{font:700 21px 'Segoe UI',sans-serif;fill:#102a43;text-anchor:middle}.label{font:600 18px 'Segoe UI',sans-serif;fill:#102a43;text-anchor:middle}.small{font:16px 'Segoe UI',sans-serif;fill:#334e68;text-anchor:middle}.tiny{font:14px 'Segoe UI',sans-serif;fill:#486581;text-anchor:middle}.data{fill:none;stroke:#243447;stroke-width:3;marker-end:url(#arrow)}.bidir{fill:none;stroke:#243447;stroke-width:3;marker-start:url(#arrow);marker-end:url(#arrow)}.ctrl{fill:none;stroke:#72509b;stroke-width:2.5;stroke-dasharray:9 7;marker-end:url(#ctrlArrow)}.edgeLabel{font:600 14px 'Segoe UI',sans-serif;fill:#243447;text-anchor:middle}.note{font:16px 'Segoe UI',sans-serif;fill:#5b3412;text-anchor:middle}
+    </style>
+  </defs>
+  <rect class="bg" width="2900" height="1750"/>
+  <text class="title" x="1450" y="52" text-anchor="middle">GPU Microarchitecture — Current RTL</text>
+  <text class="small" x="1450" y="84">gpu_top + core_top • IF → ID → EX1 → EX2 → EX3 → WB</text>
+
+  <rect class="outer" x="55" y="120" width="2790" height="1485" rx="22"/>
+  <text class="subtitle" x="90" y="160">gpu_top</text>
+
+  <rect class="control" x="85" y="255" width="180" height="170" rx="13"/>
+  <text class="stage" x="175" y="292">IF: PC</text>
+  <text class="small" x="175" y="324">program_counter</text>
+  <text class="small" x="175" y="352">10-bit modulo 1024</text>
+  <text class="small" x="175" y="380">branch &gt; stall &gt; +1</text>
+  <text class="tiny" x="175" y="406">halt also stalls PC</text>
+
+  <rect class="memory" x="310" y="215" width="235" height="215" rx="13"/>
+  <text class="stage" x="428" y="254">instruction_memory</text>
+  <text class="small" x="428" y="287">1024 × 32 dual-port BRAM</text>
+  <text class="small" x="428" y="315">Port A sync read + enable</text>
+  <text class="small" x="428" y="343">rd_data is instruction register</text>
+  <text class="tiny" x="428" y="375">Port B: wrapper/CPCI</text>
+  <text class="tiny" x="428" y="401">contents survive core reset</text>
+
+  <rect class="control" x="310" y="465" width="235" height="135" rx="13"/>
+  <text class="label" x="428" y="500">fetch_stage</text>
+  <text class="small" x="428" y="530">registered PC + valid only</text>
+  <text class="tiny" x="428" y="558">hold on stall • clear on branch</text>
+
+  <rect class="group" x="595" y="195" width="405" height="405" rx="16"/>
+  <text class="stage" x="798" y="232">ID: decode_stage</text>
+  <rect class="compute" x="625" y="265" width="180" height="255" rx="12"/>
+  <text class="label" x="715" y="299">instruction_decoder</text>
+  <text class="small" x="715" y="330">opcode / dtype</text>
+  <text class="small" x="715" y="356">imm19 / offset12</text>
+  <text class="small" x="715" y="382">LD ST BLT BGE</text>
+  <text class="small" x="715" y="408">FMA BCAST HALT</text>
+  <text class="tiny" x="715" y="442">branch/store RF-address</text>
+  <text class="tiny" x="715" y="466">remapping in decode_stage</text>
+  <rect class="compute" x="825" y="265" width="145" height="255" rx="12"/>
+  <text class="label" x="898" y="299">register_file</text>
+  <text class="small" x="898" y="330">16 × 64</text>
+  <text class="small" x="898" y="356">3 async reads</text>
+  <text class="small" x="898" y="382">1 sync write</text>
+  <text class="small" x="898" y="412">R0 = zero</text>
+  <text class="tiny" x="898" y="442">R13 thread ID</text>
+  <text class="tiny" x="898" y="464">R14 block ID</text>
+  <text class="tiny" x="898" y="486">R15 block dim</text>
+
+  <rect class="pipe" x="1045" y="255" width="165" height="250" rx="12"/>
+  <text class="stage" x="1128" y="292">ID / EX1</text>
+  <text class="small" x="1128" y="325">pipeline_reg_idex</text>
+  <text class="small" x="1128" y="354">3 operands + imm</text>
+  <text class="small" x="1128" y="382">PC + dst + dtype</text>
+  <text class="small" x="1128" y="410">ALU / mem / halt</text>
+  <text class="tiny" x="1128" y="444">flush on RAW stall</text>
+  <text class="tiny" x="1128" y="466">or taken branch</text>
+
+  <rect class="group" x="1255" y="175" width="1070" height="690" rx="18"/>
+  <text class="stage" x="1790" y="214">execute_stage — data pipelines align at EX3</text>
+  <line x1="1610" y1="235" x2="1610" y2="825" stroke="#9fb3c8" stroke-width="2"/><line x1="1970" y1="235" x2="1970" y2="825" stroke="#9fb3c8" stroke-width="2"/>
+  <text class="stage" x="1430" y="258">EX1</text><text class="stage" x="1790" y="258">EX2</text><text class="stage" x="2150" y="258">EX3</text>
+
+  <rect class="compute" x="1295" y="290" width="270" height="145" rx="12"/>
+  <text class="label" x="1430" y="323">Operand/control front</text>
+  <text class="small" x="1430" y="352">op_b = rs2 or immediate</text>
+  <text class="small" x="1430" y="378">BCAST lane select + replicate</text>
+  <text class="tiny" x="1430" y="401">then 135-bit SIMD input register</text>
+  <text class="tiny" x="1430" y="423">LD/ST base+offset/store data start 2-reg pipe</text>
+
+  <rect class="compute" x="1645" y="290" width="280" height="155" rx="12"/>
+  <text class="label" x="1785" y="323">Integer lane</text>
+  <text class="small" x="1785" y="352">one int16_alu on lane 0</text>
+  <text class="small" x="1785" y="378">ADD SUB MUL MAX MOV RELU</text>
+  <text class="small" x="1785" y="404">16-bit result register</text>
+  <text class="tiny" x="1785" y="429">not four independent INT lanes</text>
+
+  <rect class="compute" x="2015" y="290" width="265" height="155" rx="12"/>
+  <text class="label" x="2148" y="323">INT result align</text>
+  <text class="small" x="2148" y="352">replicate lane-0 result ×4</text>
+  <text class="small" x="2148" y="378">dtype_r2 selects output</text>
+  <text class="tiny" x="2148" y="407">all non-BF16 dtype codes</text>
+
+  <rect class="compute" x="1645" y="485" width="280" height="160" rx="12"/>
+  <text class="label" x="1785" y="518">4 × bf16_alu</text>
+  <text class="small" x="1785" y="547">phase 1: classify, mul, align, add</text>
+  <text class="small" x="1785" y="575">internal s1 pipeline registers</text>
+  <text class="small" x="1785" y="603">phase 2: LZC, normalize, mux</text>
+  <text class="tiny" x="1785" y="628">BF16 path is truly four-lane</text>
+
+  <rect class="compute" x="2015" y="485" width="265" height="160" rx="12"/>
+  <text class="label" x="2148" y="518">SIMD EX3 output</text>
+  <text class="small" x="2148" y="547">four BF16 results, or</text>
+  <text class="small" x="2148" y="575">replicated INT16 result</text>
+  <text class="tiny" x="2148" y="607">BCAST operates before lanes</text>
+
+  <rect class="compute" x="1295" y="690" width="985" height="120" rx="12"/>
+  <text class="label" x="1788" y="721">4 × bf16_fma_unit — independent A × B + C per 16-bit lane</text>
+  <text class="small" x="1430" y="754">EX1: 8×8 multiply, exponent work, magnitude sort</text>
+  <text class="small" x="1788" y="754">EX2: align smaller mantissa, 19-bit add/sub</text>
+  <text class="small" x="2145" y="754">EX3: LZC, normalize, truncate, special mux</text>
+  <text class="tiny" x="1788" y="786">FMA selection ignores dtype; no intermediate BF16 product truncation</text>
+
+  <path class="data" d="M265 340H310"/><path class="data" d="M545 325H595"/><path class="data" d="M545 532H595"/><path class="data" d="M1000 380H1045"/><path class="data" d="M1210 380H1255"/>
+  <path class="data" d="M1565 352H1645"/><path class="data" d="M1925 367H2015"/><path class="data" d="M1565 385V565H1645"/><path class="data" d="M1925 565H2015"/>
+
+  <rect class="pipe" x="2365" y="255" width="175" height="250" rx="12"/>
+  <text class="stage" x="2453" y="292">EX3 / WB</text>
+  <text class="small" x="2453" y="325">pipeline_reg_exwb</text>
+  <text class="small" x="2453" y="354">64-bit ALU result</text>
+  <text class="small" x="2453" y="382">dst + reg_write</text>
+  <text class="small" x="2453" y="410">mem_read + HALT</text>
+  <text class="tiny" x="2453" y="446">control passed through</text>
+  <text class="tiny" x="2453" y="468">two pipeline_reg_ex rails</text>
+
+  <rect class="pipe" x="2580" y="255" width="180" height="250" rx="12"/>
+  <text class="stage" x="2670" y="292">WB</text>
+  <text class="small" x="2670" y="325">writeback_stage</text>
+  <text class="small" x="2670" y="354">combinational mux</text>
+  <text class="small" x="2670" y="382">DMEM load / ALU</text>
+  <text class="small" x="2670" y="410">write RF</text>
+
+  <polygon class="compute" points="2288,585 2308,565 2328,585 2308,605"/>
+  <text class="tiny" x="2308" y="548">EX3 result mux</text>
+  <path class="data" d="M2280 367H2308V565"/>
+  <path class="data" d="M2280 565H2288"/>
+  <path class="data" d="M2280 750H2308V605"/>
+  <path class="data" d="M2328 585H2345V380H2365"/><path class="data" d="M2540 380H2580"/>
+  <path class="data" d="M2670 505V615H898V520"/>
+  <text class="edgeLabel" x="1760" y="638">writeback data + destination</text>
+
+  <rect class="pipe" x="1310" y="900" width="285" height="120" rx="12"/>
+  <text class="label" x="1453" y="936">EX1/EX2 control rail</text>
+  <text class="small" x="1453" y="965">pipeline_reg_ex</text>
+  <text class="tiny" x="1453" y="992">reg_write, mem_read, rd, halt</text>
+  <rect class="pipe" x="1660" y="900" width="285" height="120" rx="12"/>
+  <text class="label" x="1803" y="936">EX2/EX3 control rail</text>
+  <text class="small" x="1803" y="965">pipeline_reg_ex</text>
+  <text class="tiny" x="1803" y="992">older operations drain during stall</text>
+  <path class="data" d="M1210 455V960H1310"/><path class="data" d="M1595 960H1660"/><path class="data" d="M1945 960H2453V505"/>
+
+  <rect class="memory" x="2315" y="690" width="445" height="255" rx="14"/>
+  <text class="stage" x="2538" y="729">data_memory</text>
+  <text class="small" x="2538" y="759">1024 × 64 dual-port BRAM • sync read-first</text>
+  <text class="small" x="2538" y="789">Port A: core LD/ST in EX3</text>
+  <text class="small" x="2538" y="815">address = low10(rs1) + low10(offset)</text>
+  <text class="small" x="2538" y="841">Port B: DMA or CPCI via wrapper mux</text>
+  <text class="tiny" x="2538" y="875">registered read data feeds WB</text>
+  <text class="tiny" x="2538" y="900">contents survive core reset</text>
+  <path class="bidir" d="M2280 610H2350V690"/>
+  <path class="data" d="M2580 815H2670V505"/>
+
+  <rect class="control" x="600" y="1075" width="420" height="210" rx="14"/>
+  <text class="stage" x="810" y="1115">hazard_unit</text>
+  <text class="small" x="810" y="1148">decode sources vs destinations in EX1 / EX2 / EX3 / WB</text>
+  <text class="small" x="810" y="1178">RAW stall only • no forwarding • R0 exempt</text>
+  <text class="small" x="810" y="1208">hold PC + IMEM + fetch metadata</text>
+  <text class="small" x="810" y="1238">flush ID/EX to a side-effect-free bubble</text>
+
+  <rect class="control" x="1110" y="1075" width="430" height="210" rx="14"/>
+  <text class="stage" x="1325" y="1115">EX1 branch path</text>
+  <text class="small" x="1325" y="1148">BLT/BGE compare entire signed 64-bit operands</text>
+  <text class="small" x="1325" y="1178">target = branch PC + low10(offset), modulo 1024</text>
+  <text class="small" x="1325" y="1208">taken: redirect PC + disable current IMEM read</text>
+  <text class="small" x="1325" y="1238">flush fetch metadata and ID/EX (two younger slots)</text>
+
+  <rect class="control" x="1640" y="1075" width="420" height="210" rx="14"/>
+  <text class="stage" x="1850" y="1115">sticky HALT / kernel_done</text>
+  <text class="small" x="1850" y="1148">HALT bit travels to EX3/WB, then sets halted_r</text>
+  <text class="small" x="1850" y="1178">gates PC, IMEM read enable, and core DMEM writes</text>
+  <text class="small" x="1850" y="1208">does not flush younger operations</text>
+  <text class="small" x="1850" y="1238">does not gate RF writeback</text>
+
+  <path class="ctrl" d="M715 520V1075"/><path class="ctrl" d="M1128 505V1040H810V1075"/><path class="ctrl" d="M1453 1020V1040H810V1075"/><path class="ctrl" d="M1803 1020V1040H810V1075"/><path class="ctrl" d="M2453 505V1040H810V1075"/>
+  <path class="ctrl" d="M810 1075V1035H175V425"/>
+  <path class="ctrl" d="M810 1075V1025H428V600"/>
+  <path class="ctrl" d="M810 1075V1010H1128V505"/>
+  <path class="ctrl" d="M1128 505V1015H1325V1075"/>
+  <path class="ctrl" d="M1325 1075V1020H175V425"/>
+  <path class="ctrl" d="M1325 1075V1000H428V600"/>
+  <path class="ctrl" d="M1325 1075V985H1128V505"/>
+  <path class="ctrl" d="M2453 505V1025H1850V1075"/>
+  <path class="ctrl" d="M1850 1075V1045H175V425"/>
+  <path class="ctrl" d="M1850 1075V1060H2315V815"/>
+
+  <rect class="control" x="85" y="1360" width="460" height="165" rx="14"/>
+  <text class="stage" x="315" y="1397">lab8_wrapper external interface</text>
+  <text class="small" x="315" y="1428">GPU reset • kernel_done • 32-bit cycle counter</text>
+  <text class="small" x="315" y="1458">IMEM-B 10b/32b • DMEM-B 10b/64b</text>
+  <text class="small" x="315" y="1488">thread=0 • block=0 • blockdim=1</text>
+  <path class="bidir" d="M315 1360V1310H428V430"/>
+  <path class="bidir" d="M545 1445H2538V945"/>
+  <path class="ctrl" d="M545 1490H1850V1285"/>
+
+  <rect class="warn" x="650" y="1360" width="2020" height="165" rx="14"/>
+  <text class="stage" x="1660" y="1397">Implementation interpretation</text>
+  <text class="note" x="1660" y="1432">The 64-bit register word contains four 16-bit positions, but current integer arithmetic uses only lane 0 and broadcasts that result. BF16 ALU and BF16 FMA remain four-lane.</text>
+  <text class="note" x="1660" y="1465">FMA is fused only in the sense that the product is not first rounded to BF16; final results truncate, denormals flush to zero, and the subset is not full IEEE-754.</text>
+  <text class="note" x="1660" y="1498">The active build header is include/gpu_params.vh, which defines BCAST; the duplicate src/gpu/gpu_params.vh lacks those current definitions.</text>
+</svg>

@@ -1,0 +1,112 @@
+  Reusable style anchor (paste at top of every prompt)
+
+  STYLE: Warm 2D-animated storybook illustration, Pixar-meets-Studio-Ghibli,
+  soft golden-hour lighting, gentle pastel palette (cream, dusty rose, sage green,
+  warm amber). Hand-painted texture, slight film grain. Friendly, cozy, slow
+  breathing pace. Aspect ratio 16:9. 8 seconds.
+
+  RECURRING CHARACTER: A small fluffy golden retriever with kind brown eyes,
+  soft cream-orange fur, a faded blue collar with a tiny silver tag.
+  He is calm, alert, gentle. Appears in every shot.
+
+  NEGATIVE: photorealistic human faces, uncanny valley, dark/horror tones,
+  glitchy artifacts, neon cyberpunk, text overlays, watermarks, fast cuts,
+  frantic camera shake.
+
+  ---
+  Clip 1 — Hook (0–8s): cozy kitchen, the call comes in
+
+  A sunlit cozy kitchen at golden hour. A pair of weathered, gentle hands
+  (palms only, no face) cradle a steaming ceramic mug at a wooden table.
+  A vintage cream-colored landline phone sits beside a vase of daisies.
+  The phone begins to ring softly — gentle ringer animation, slight wobble.
+  The golden retriever lifts his head from a sunlit floor cushion, ears perking.
+  Camera: slow dolly-in from mid-shot to the phone. Quiet, anticipatory mood.
+
+  Clip 2 — Hook continued (8–15s): "Unknown Number"
+
+  Close-up over the shoulder of the smartphone screen lying on the table.
+  The screen glows softly: "UNKNOWN NUMBER" in a clean storybook font.
+  The golden retriever pads up to the table, places his chin near the phone,
+  and tilts his head — one ear up, one ear down, a tiny worried whimper visible
+  in his expression. Soft lens flare. Camera: gentle push-in on the dog's eyes.
+
+  Clip 3 — Problem (15–23s): unseen threats float toward the home
+
+  Wide cutaway: a cozy storybook cottage at twilight, warm windows glowing.
+  From the dark sky, a small flock of stylized envelopes with shadowy
+  cartoon eyes drift menacingly toward the house — slow, floating, not scary,
+  just *off*. One envelope has a tiny dollar sign, one has a camera lens,
+  one has a stolen photograph peeking out the seal.
+  Camera: slow truck-right tracking the envelopes. Mood: gentle unease.
+
+  Clip 4 — Problem close-up (23–30s): what they want
+
+  Inside the cottage living room. A smart speaker on a shelf, a TV with a
+  family photo as wallpaper, the smartphone on a side table — all glowing
+  warm. The shadowy envelopes from outside press faintly against the window
+  glass, peering in. The golden retriever stands between the window and
+  the devices, low growl, fur slightly raised. Protective, not aggressive.
+  Camera: static, slight zoom-in on the dog's stance.
+
+  Clip 5 — Solution analogy 1 (30–38s): the tiny guard inside
+
+  Macro shot diving INTO the smartphone screen — a magical zoom through
+  the glass into a tiny cartoon world inside. There stands a friendly
+  chibi-style security guard in a soft blue uniform with a round badge
+  shaped like a paw print. The golden retriever sits beside him, tail wagging.
+  They stand at a glowing doorway where envelopes line up to enter.
+  Camera: dolly-in through the phone screen, magical particle transition.
+
+  Clip 6 — Solution analogy 2 (38–45s): guard sorts good vs. bad
+
+  The tiny guard at the doorway, dog at his side. Good envelopes (one with a
+  heart, one with a child's drawing labeled "Grandma!", one with a stethoscope
+  icon) walk through cheerfully and a green checkmark appears.
+  A shadowy envelope with sneaky eyes tries to sneak through — the guard
+  firmly raises his palm, the dog gives one calm bark, and the envelope
+  poofs into harmless dust. Camera: medium two-shot, warm key light.
+
+  Clip 7 — Why it matters (45–55s): the chip, the smile, the call
+
+  Pull back from the tiny world: zoom out through the phone screen to reveal
+  a glowing pastel-blue microchip nestled inside the phone, pulsing gently
+  like a heartbeat. Cut to the same hands from Clip 1 picking up the phone —
+  now the screen shows a video call from a grinning cartoon grandchild
+  waving "Hi Grandma!" The golden retriever's tail thumps the floor.
+  Camera: smooth pull-out then match-cut to the answered call.
+
+  Clip 8 — Scale-up part 1 (55–65s): same chip, bigger houses
+
+  Wide aerial-style storybook map view. The same glowing pastel-blue chip
+  icon appears like a friendly stamp on three buildings in sequence:
+  a small storybook hospital with a red cross, a classic bank with columns,
+  and a vast cartoon data center with rows of softly humming server towers.
+  The golden retriever trots along the map between them, leaving tiny
+  paw-print sparkles. Camera: slow pan across the landscape.
+
+  Clip 9 — Scale-up part 2 (65–75s): protecting the AI brain
+
+  Inside the cartoon data center: glowing pastel server racks shaped like
+  friendly bookshelves, each holding a softly pulsing "AI brain" orb.
+  The same shadowy envelopes from earlier try to sneak in carrying tiny
+  wrenches (tampering). The tiny guard and the golden retriever stand at
+  the entrance, calmly turning them away. One envelope is gently escorted
+  out by the dog. Camera: slow tracking shot down the server aisle.
+
+  Clip 10 — Close (75–88s): the watchful friend at sunset
+
+  Return to the cozy kitchen from Clip 1, now at sunset. The golden
+  retriever curls up beside the smartphone on the table, eyes half-closed
+  but ears still alert. The vintage landline is quiet. Daisies sway slightly
+  in the breeze from an open window. A soft glow pulses once from the phone
+  — the chip inside, still watching. Camera: very slow pull-back to a wide
+  warm composition. Hold on the final frame for an end-card overlay.
+
+  Clip 11 — End card (88–90s): the title
+
+  Static end card, hand-painted storybook style. Centered text in a warm
+  serif font: "Security that fits in your pocket." Smaller text below:
+  "Group 12 — Zilin Shao." The golden retriever sits in the lower-right
+  corner, head tilted, gives one small wag. Soft cream background with
+  faint paw-print watermark. Hold 2 seconds.

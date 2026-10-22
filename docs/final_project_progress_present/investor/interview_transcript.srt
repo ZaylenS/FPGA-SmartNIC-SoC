@@ -1,0 +1,596 @@
+1
+00:00:01,360 --> 00:00:06,640
+All right, so we can just directly jump to my first question.
+
+2
+00:00:07,040 --> 00:00:07,520
+Sure.
+
+3
+00:00:07,860 --> 00:00:12,980
+So you know that I'm doing a fun project about SmartNIC.
+
+4
+00:00:13,240 --> 00:00:13,960
+Oh, question.
+
+5
+00:00:14,620 --> 00:00:17,900
+Are you going to, did you want to start recording this meeting?
+
+6
+00:00:18,260 --> 00:00:19,640
+Yes, I'm already recording.
+
+7
+00:00:20,540 --> 00:00:21,020
+Okay.
+
+8
+00:00:21,240 --> 00:00:22,160
+Yeah, is it good?
+
+9
+00:00:22,400 --> 00:00:23,640
+Cool, yeah, sounds good.
+
+10
+00:00:23,840 --> 00:00:24,020
+Yeah, yeah.
+
+11
+00:00:24,340 --> 00:00:27,660
+So the project is about like network intrusion detection.
+
+12
+00:00:27,860 --> 00:00:29,660
+It's machine learning based.
+
+13
+00:00:29,660 --> 00:00:35,580
+And so how do you think the market is today on the cybersecurity on AI
+
+14
+00:00:35,580 --> 00:00:37,920
+in dollars, billions, or tens of billions?
+
+15
+00:00:39,000 --> 00:00:41,080
+Feel free to say anything.
+
+16
+00:00:42,380 --> 00:00:43,440
+Yeah, yeah.
+
+17
+00:00:43,580 --> 00:00:53,560
+I think the market, or first to caveat, one thing is I'm also pretty new
+
+18
+00:00:53,560 --> 00:00:55,580
+to kind of like this whole new area of technology.
+
+19
+00:00:55,860 --> 00:00:59,580
+So my background may not be as in.
+
+20
+00:01:00,900 --> 00:01:07,000
+I don't think our professor will actually look into, yeah, so we kind of just,
+
+21
+00:01:07,000 --> 00:01:11,920
+we use some like small scripts, like you're answering that, yes, this design is valuable.
+
+22
+00:01:12,400 --> 00:01:15,840
+I guess he just wants some like that thing in presentation.
+
+23
+00:01:16,040 --> 00:01:17,240
+So it would be really helpful.
+
+24
+00:01:17,440 --> 00:01:18,120
+No worry.
+
+25
+00:01:18,240 --> 00:01:18,360
+Cool.
+
+26
+00:01:18,440 --> 00:01:18,920
+Yeah, sure.
+
+27
+00:01:19,040 --> 00:01:19,720
+Say whatever you want.
+
+28
+00:01:20,420 --> 00:01:22,340
+I'm like new to this area as well.
+
+29
+00:01:22,800 --> 00:01:23,260
+Yeah.
+
+30
+00:01:23,360 --> 00:01:23,760
+Yeah, yeah.
+
+31
+00:01:24,640 --> 00:01:25,100
+Cool.
+
+32
+00:01:25,500 --> 00:01:25,960
+Yeah.
+
+33
+00:01:26,100 --> 00:01:28,740
+To answer your first question, I think.
+
+34
+00:01:31,060 --> 00:01:34,180
+Um, actually, could you repeat the question just so I got everything?
+
+35
+00:01:34,400 --> 00:01:34,620
+Yeah.
+
+36
+00:01:34,700 --> 00:01:39,260
+So, uh, how big do you think this market is today in dollars, billions or tens of
+
+37
+00:01:39,260 --> 00:01:43,240
+billions, the market, which means, uh, cybersecurity on AI?
+
+38
+00:01:45,280 --> 00:01:50,460
+Yeah, I think this market is, I think this market is really big, especially
+
+39
+00:01:50,460 --> 00:01:57,760
+considering, um, all the other companies dealing with like, um, I guess it kind
+
+40
+00:01:57,760 --> 00:01:59,320
+of touches on a lot of different industries.
+
+41
+00:01:59,340 --> 00:01:59,640
+Right.
+
+42
+00:01:59,660 --> 00:02:04,420
+Um, like cloud computing to, uh, telecommunications to, um, actually like data centers.
+
+43
+00:02:04,920 --> 00:02:10,780
+Um, because those areas, uh, in industry have been growing really quickly.
+
+44
+00:02:11,400 --> 00:02:15,580
+I think, um, this is just an, like a ballpark estimation.
+
+45
+00:02:15,760 --> 00:02:19,600
+I feel like if it matches their growth, uh, it could be like in the billions
+
+46
+00:02:19,600 --> 00:02:20,900
+or multi billions of dollars.
+
+47
+00:02:21,360 --> 00:02:22,280
+Yeah, that's true.
+
+48
+00:02:23,000 --> 00:02:23,520
+Yeah.
+
+49
+00:02:23,660 --> 00:02:29,120
+So, uh, here comes my second question, if a startup has this working tomorrow, which
+
+50
+00:02:29,120 --> 00:02:33,920
+is like, uh, smart, uh, intrusion decash system, who would buy it first, uh, banks,
+
+51
+00:02:34,060 --> 00:02:36,740
+telecoms, cloud providers, government, or enterprise?
+
+52
+00:02:41,810 --> 00:02:48,950
+My, my first thought is I, I feel like telecoms, uh, cloud providers, um, those
+
+53
+00:02:48,950 --> 00:02:50,950
+will be the first companies that will buy it.
+
+54
+00:02:51,210 --> 00:02:55,770
+Uh, this is because they, they just have the existing, existing market.
+
+55
+00:02:55,910 --> 00:03:02,010
+They have the existing needs, um, in terms of, of what they're doing already with working with data.
+
+56
+00:03:02,010 --> 00:03:04,030
+centers and like high-speed trafficking.
+
+57
+00:03:04,250 --> 00:03:10,330
+Um, so I think they, they will be the ones who are willing to spend money into kind of this hardware area.
+
+58
+00:03:10,530 --> 00:03:11,050
+Yes.
+
+59
+00:03:11,550 --> 00:03:22,330
+The other companies like banks, I'm sure they'll follow suit, uh, but probably not as fast as, uh, tele telecom companies.
+
+60
+00:03:23,630 --> 00:03:24,270
+All right.
+
+61
+00:03:24,310 --> 00:03:31,510
+So search question will be in India, Bluefield and AMD Pensando already shipped programmable, programmable
+
+62
+00:03:32,010 --> 00:03:32,630
+smart links.
+
+63
+00:03:32,770 --> 00:03:36,390
+So do you think, uh, a startup can win against them?
+
+64
+00:03:36,470 --> 00:03:37,170
+Yes or no?
+
+65
+00:03:39,330 --> 00:03:42,490
+Uh, I would say it depends.
+
+66
+00:03:42,850 --> 00:03:43,370
+Yeah.
+
+67
+00:03:43,710 --> 00:03:44,230
+Depends.
+
+68
+00:03:44,510 --> 00:03:57,370
+Um, I say that because Nvidia, AMD, uh, with these products that they have, they are already selling like, um, commercial grade, like hardware.
+
+69
+00:03:58,050 --> 00:04:01,570
+Uh, it's hard to compete that if, um, if you don't have.
+
+70
+00:04:02,130 --> 00:04:04,270
+Uh, anything that sets you apart.
+
+71
+00:04:05,610 --> 00:04:14,770
+Um, I think if you were to compete, uh, in that field with these big companies, you wouldn't need a niche specifically.
+
+72
+00:04:15,270 --> 00:04:18,450
+And I'm just thinking about your project, just reading kind of like your description.
+
+73
+00:04:18,530 --> 00:04:24,790
+It sounds like you have a focus on like machine learning and kind of integrating that into like actual hardware.
+
+74
+00:04:26,050 --> 00:04:29,930
+Um, I think for your product of you could.
+
+75
+00:04:31,130 --> 00:04:40,070
+Just get a specialized, uh, machine learning that is, uh, efficient on hardware that, um, that works.
+
+76
+00:04:40,270 --> 00:04:43,670
+Um, you would be set apart.
+
+77
+00:04:43,870 --> 00:04:50,890
+You, you might be able to compete and, uh, maybe collaborate with these companies if that's where you want to go.
+
+78
+00:04:51,050 --> 00:04:51,710
+That's true.
+
+79
+00:04:51,790 --> 00:04:58,090
+I think for startup with the advantage would be kind of like being able to very customized applications.
+
+80
+00:05:00,340 --> 00:05:00,900
+Right.
+
+81
+00:05:00,960 --> 00:05:01,420
+So next.
+
+82
+00:05:01,440 --> 00:05:14,820
+Next question would be, so what a budget will, uh, CISO, which is chief information, no security office, realistically approved for one of these security boxes, like 10 K, a hundred K or over a million dollars.
+
+83
+00:05:16,870 --> 00:05:17,310
+Hmm.
+
+84
+00:05:25,470 --> 00:05:39,550
+You're like, uh, it's hard to say, um, especially when we're talking about like, uh, like Cisco, like those companies, like, um, I'm just trying to think about like, oh, what Cisco would see in terms of like.
+
+85
+00:05:40,390 --> 00:05:41,810
+Oh, we have this product.
+
+86
+00:05:42,010 --> 00:06:01,250
+Um, I feel like a company like Cisco or any other big company, they would be wanting to either interested in like, like outright buying the product, like ownership or, um, or if it is more beneficial to them, it'll be more like buying individual units.
+
+87
+00:06:03,170 --> 00:06:09,030
+Um, and I mentioned that because like those two areas have like drastically different, like price ranges.
+
+88
+00:06:09,030 --> 00:06:16,670
+Like, do you want to like buy like rights, ownership, support, um, the, the IPs to everything, or do you just want to like buy the unit?
+
+89
+00:06:17,290 --> 00:06:24,410
+Um, but I guess you can't assume that we can kind of like buy the units, like buy the service.
+
+90
+00:06:25,170 --> 00:06:25,610
+Okay.
+
+91
+00:06:25,830 --> 00:06:26,270
+Okay.
+
+92
+00:06:29,070 --> 00:06:35,430
+Um, in that case, uh, I don't know how much, um, yeah, I'm not really sure.
+
+93
+00:06:35,490 --> 00:06:39,010
+I guess a hundred K would be like, uh, a good estimate.
+
+94
+00:06:39,010 --> 00:06:42,870
+Cause like the application would be very edge fitting.
+
+95
+00:06:43,070 --> 00:06:45,270
+It's not like a very huge color computing stuff.
+
+96
+00:06:46,170 --> 00:06:46,610
+Yeah.
+
+97
+00:06:47,310 --> 00:06:47,750
+Sure.
+
+98
+00:06:47,850 --> 00:06:48,090
+Sure.
+
+99
+00:06:48,150 --> 00:06:51,690
+If that's like the market standard, then I would go with the market standard.
+
+100
+00:06:51,890 --> 00:06:52,090
+That's true.
+
+101
+00:06:52,450 --> 00:06:53,010
+All right.
+
+102
+00:06:53,030 --> 00:07:07,010
+So next question is that if this company pitch you tomorrow, like suppose, uh, we have a startup like this company, would you want to invest a yes or no or, and why, uh, I'll say it depends again.
+
+103
+00:07:07,150 --> 00:07:07,470
+Yeah.
+
+104
+00:07:07,990 --> 00:07:08,430
+Um,
+
+105
+00:07:08,430 --> 00:07:34,690
+it depends if, um, I want to invest, if you could show, uh, first that the prototype works, um, and give me much more information in terms of, oh, what is your plan or have you already gone through like life cycle, like some, some sort of maturity in, in terms of like actually testing and implementing, um,
+
+106
+00:07:34,830 --> 00:07:37,310
+your machine learning to the hardware.
+
+107
+00:07:38,490 --> 00:07:43,590
+Uh, I would also want to know, uh, what is your plan for, um, customer base?
+
+108
+00:07:43,790 --> 00:07:44,870
+Is it other companies?
+
+109
+00:07:44,890 --> 00:07:46,650
+Like, what is your strategy in terms of that?
+
+110
+00:07:47,910 --> 00:07:55,570
+Uh, once that's well laid out, I think that, oh yeah, it'll give me a, a much more better understanding of, um, yeah, whether or not I would invest.
+
+111
+00:07:56,290 --> 00:07:56,650
+Yeah.
+
+112
+00:07:57,110 --> 00:07:57,910
+That sounds so good.
+
+113
+00:07:58,690 --> 00:07:59,050
+Right.
+
+114
+00:07:59,110 --> 00:08:07,190
+So last question would be, uh, when strategic, uh, strategic like Broadcom, Cisco or Nvidia acquires a company like this.
+
+115
+00:08:07,310 --> 00:08:12,970
+So what do you think they are actually paying for the chip, the software, the customer base or the team?
+
+116
+00:08:16,860 --> 00:08:17,880
+I think it's a mix.
+
+117
+00:08:18,300 --> 00:08:18,780
+Yeah.
+
+118
+00:08:18,920 --> 00:08:19,360
+Yeah.
+
+119
+00:08:19,580 --> 00:08:40,340
+Um, it's a mix because depending on where you are in your life cycle of like, oh, you have, you just were able to test and like produce this like hardware or you've like produced it, tested it, gone through many iterations and you have a team that supports it with like additional software.
+
+120
+00:08:41,520 --> 00:08:53,640
+Um, companies like these would either outright just buy the product or buy like the whole team, um, and the support that comes with it, uh, depending on what your plan is, how far you want to go with this project.
+
+121
+00:08:53,800 --> 00:09:08,640
+I think that, um, if you have a near term of just wanting to produce a single piece of hardware that you can sell to the industry, then, uh, a company like, like these big ones would probably just buy like the intellectual property to, um, what you've created.
+
+122
+00:09:09,700 --> 00:09:10,660
+Yeah, that's true.
+
+123
+00:09:10,720 --> 00:09:10,840
+Yeah.
+
+124
+00:09:10,860 --> 00:09:11,280
+I kind of agree.
+
+125
+00:09:11,540 --> 00:09:11,980
+Yeah.
+
+126
+00:09:12,060 --> 00:09:22,460
+I feel they're a good example with like, um, the NVIDIA acquired Melanox, the infinite band, like basically what makes like NVIDIA like really, a really smart decision.
+
+127
+00:09:22,720 --> 00:09:33,540
+Cause that's kind of like what they actually need because they, NVIDIA have the computing power, but if they have the like high bandwidth of like moving data, they like be non-compatible.
+
+128
+00:09:33,820 --> 00:09:40,660
+So, yeah, uh, my idea is kind of, I feel like a company acquires like this startup.
+
+129
+00:09:40,860 --> 00:09:48,100
+So they kind of like want their customers, cause like once they're coming out first, they have the ecosystem like acquired already.
+
+130
+00:09:48,320 --> 00:09:50,160
+So people will get used to it first.
+
+131
+00:09:50,440 --> 00:09:51,780
+So it's really hard to switch.
+
+132
+00:09:52,300 --> 00:09:52,660
+Yeah.
+
+133
+00:09:52,720 --> 00:09:53,360
+This is my thoughts.
+
+134
+00:09:54,120 --> 00:09:54,480
+Right.
+
+135
+00:09:55,000 --> 00:09:55,520
+All right.
+
+136
+00:09:55,560 --> 00:09:57,000
+So that's, that's all of the interview.
+
+137
+00:09:57,180 --> 00:09:57,360
+Yeah.
+
+138
+00:09:57,460 --> 00:09:58,500
+Thank you very much for your time.
+
+139
+00:09:59,180 --> 00:09:59,540
+Yeah.
+
+140
+00:09:59,780 --> 00:10:00,140
+Yeah.
+
+141
+00:10:00,200 --> 00:10:00,560
+Yeah.
+
+142
+00:10:01,280 --> 00:10:01,800
+Thank you.
+
+143
+00:10:02,180 --> 00:10:02,540
+Yeah.
+
+144
+00:10:02,760 --> 00:10:03,740
+Uh, talk to you later.
+
+145
+00:10:04,000 --> 00:10:04,360
+Yeah.
+
+146
+00:10:04,460 --> 00:10:04,920
+See you.
+
+147
+00:10:05,600 --> 00:10:05,960
+Bye.
+
+148
+00:10:06,320 --> 00:10:06,680
+Bye.
+
+149
+00:10:15,550 --> 00:10:15,990
+See you.
+

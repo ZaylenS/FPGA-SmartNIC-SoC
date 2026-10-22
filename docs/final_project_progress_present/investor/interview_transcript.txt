@@ -1,0 +1,149 @@
+[00:00:01.360] All right, so we can just directly jump to my first question.
+[00:00:07.040] Sure.
+[00:00:07.860] So you know that I'm doing a fun project about SmartNIC.
+[00:00:13.240] Oh, question.
+[00:00:14.620] Are you going to, did you want to start recording this meeting?
+[00:00:18.260] Yes, I'm already recording.
+[00:00:20.540] Okay.
+[00:00:21.240] Yeah, is it good?
+[00:00:22.400] Cool, yeah, sounds good.
+[00:00:23.840] Yeah, yeah.
+[00:00:24.340] So the project is about like network intrusion detection.
+[00:00:27.860] It's machine learning based.
+[00:00:29.660] And so how do you think the market is today on the cybersecurity on AI
+[00:00:35.580] in dollars, billions, or tens of billions?
+[00:00:39.000] Feel free to say anything.
+[00:00:42.380] Yeah, yeah.
+[00:00:43.580] I think the market, or first to caveat, one thing is I'm also pretty new
+[00:00:53.560] to kind of like this whole new area of technology.
+[00:00:55.860] So my background may not be as in.
+[00:01:00.900] I don't think our professor will actually look into, yeah, so we kind of just,
+[00:01:07.000] we use some like small scripts, like you're answering that, yes, this design is valuable.
+[00:01:12.400] I guess he just wants some like that thing in presentation.
+[00:01:16.040] So it would be really helpful.
+[00:01:17.440] No worry.
+[00:01:18.240] Cool.
+[00:01:18.440] Yeah, sure.
+[00:01:19.040] Say whatever you want.
+[00:01:20.420] I'm like new to this area as well.
+[00:01:22.800] Yeah.
+[00:01:23.360] Yeah, yeah.
+[00:01:24.640] Cool.
+[00:01:25.500] Yeah.
+[00:01:26.100] To answer your first question, I think.
+[00:01:31.060] Um, actually, could you repeat the question just so I got everything?
+[00:01:34.400] Yeah.
+[00:01:34.700] So, uh, how big do you think this market is today in dollars, billions or tens of
+[00:01:39.260] billions, the market, which means, uh, cybersecurity on AI?
+[00:01:45.280] Yeah, I think this market is, I think this market is really big, especially
+[00:01:50.460] considering, um, all the other companies dealing with like, um, I guess it kind
+[00:01:57.760] of touches on a lot of different industries.
+[00:01:59.340] Right.
+[00:01:59.660] Um, like cloud computing to, uh, telecommunications to, um, actually like data centers.
+[00:02:04.920] Um, because those areas, uh, in industry have been growing really quickly.
+[00:02:11.400] I think, um, this is just an, like a ballpark estimation.
+[00:02:15.760] I feel like if it matches their growth, uh, it could be like in the billions
+[00:02:19.600] or multi billions of dollars.
+[00:02:21.360] Yeah, that's true.
+[00:02:23.000] Yeah.
+[00:02:23.660] So, uh, here comes my second question, if a startup has this working tomorrow, which
+[00:02:29.120] is like, uh, smart, uh, intrusion decash system, who would buy it first, uh, banks,
+[00:02:34.060] telecoms, cloud providers, government, or enterprise?
+[00:02:41.810] My, my first thought is I, I feel like telecoms, uh, cloud providers, um, those
+[00:02:48.950] will be the first companies that will buy it.
+[00:02:51.210] Uh, this is because they, they just have the existing, existing market.
+[00:02:55.910] They have the existing needs, um, in terms of, of what they're doing already with working with data.
+[00:03:02.010] centers and like high-speed trafficking.
+[00:03:04.250] Um, so I think they, they will be the ones who are willing to spend money into kind of this hardware area.
+[00:03:10.530] Yes.
+[00:03:11.550] The other companies like banks, I'm sure they'll follow suit, uh, but probably not as fast as, uh, tele telecom companies.
+[00:03:23.630] All right.
+[00:03:24.310] So search question will be in India, Bluefield and AMD Pensando already shipped programmable, programmable
+[00:03:32.010] smart links.
+[00:03:32.770] So do you think, uh, a startup can win against them?
+[00:03:36.470] Yes or no?
+[00:03:39.330] Uh, I would say it depends.
+[00:03:42.850] Yeah.
+[00:03:43.710] Depends.
+[00:03:44.510] Um, I say that because Nvidia, AMD, uh, with these products that they have, they are already selling like, um, commercial grade, like hardware.
+[00:03:58.050] Uh, it's hard to compete that if, um, if you don't have.
+[00:04:02.130] Uh, anything that sets you apart.
+[00:04:05.610] Um, I think if you were to compete, uh, in that field with these big companies, you wouldn't need a niche specifically.
+[00:04:15.270] And I'm just thinking about your project, just reading kind of like your description.
+[00:04:18.530] It sounds like you have a focus on like machine learning and kind of integrating that into like actual hardware.
+[00:04:26.050] Um, I think for your product of you could.
+[00:04:31.130] Just get a specialized, uh, machine learning that is, uh, efficient on hardware that, um, that works.
+[00:04:40.270] Um, you would be set apart.
+[00:04:43.870] You, you might be able to compete and, uh, maybe collaborate with these companies if that's where you want to go.
+[00:04:51.050] That's true.
+[00:04:51.790] I think for startup with the advantage would be kind of like being able to very customized applications.
+[00:05:00.340] Right.
+[00:05:00.960] So next.
+[00:05:01.440] Next question would be, so what a budget will, uh, CISO, which is chief information, no security office, realistically approved for one of these security boxes, like 10 K, a hundred K or over a million dollars.
+[00:05:16.870] Hmm.
+[00:05:25.470] You're like, uh, it's hard to say, um, especially when we're talking about like, uh, like Cisco, like those companies, like, um, I'm just trying to think about like, oh, what Cisco would see in terms of like.
+[00:05:40.390] Oh, we have this product.
+[00:05:42.010] Um, I feel like a company like Cisco or any other big company, they would be wanting to either interested in like, like outright buying the product, like ownership or, um, or if it is more beneficial to them, it'll be more like buying individual units.
+[00:06:03.170] Um, and I mentioned that because like those two areas have like drastically different, like price ranges.
+[00:06:09.030] Like, do you want to like buy like rights, ownership, support, um, the, the IPs to everything, or do you just want to like buy the unit?
+[00:06:17.290] Um, but I guess you can't assume that we can kind of like buy the units, like buy the service.
+[00:06:25.170] Okay.
+[00:06:25.830] Okay.
+[00:06:29.070] Um, in that case, uh, I don't know how much, um, yeah, I'm not really sure.
+[00:06:35.490] I guess a hundred K would be like, uh, a good estimate.
+[00:06:39.010] Cause like the application would be very edge fitting.
+[00:06:43.070] It's not like a very huge color computing stuff.
+[00:06:46.170] Yeah.
+[00:06:47.310] Sure.
+[00:06:47.850] Sure.
+[00:06:48.150] If that's like the market standard, then I would go with the market standard.
+[00:06:51.890] That's true.
+[00:06:52.450] All right.
+[00:06:53.030] So next question is that if this company pitch you tomorrow, like suppose, uh, we have a startup like this company, would you want to invest a yes or no or, and why, uh, I'll say it depends again.
+[00:07:07.150] Yeah.
+[00:07:07.990] Um,
+[00:07:08.430] it depends if, um, I want to invest, if you could show, uh, first that the prototype works, um, and give me much more information in terms of, oh, what is your plan or have you already gone through like life cycle, like some, some sort of maturity in, in terms of like actually testing and implementing, um,
+[00:07:34.830] your machine learning to the hardware.
+[00:07:38.490] Uh, I would also want to know, uh, what is your plan for, um, customer base?
+[00:07:43.790] Is it other companies?
+[00:07:44.890] Like, what is your strategy in terms of that?
+[00:07:47.910] Uh, once that's well laid out, I think that, oh yeah, it'll give me a, a much more better understanding of, um, yeah, whether or not I would invest.
+[00:07:56.290] Yeah.
+[00:07:57.110] That sounds so good.
+[00:07:58.690] Right.
+[00:07:59.110] So last question would be, uh, when strategic, uh, strategic like Broadcom, Cisco or Nvidia acquires a company like this.
+[00:08:07.310] So what do you think they are actually paying for the chip, the software, the customer base or the team?
+[00:08:16.860] I think it's a mix.
+[00:08:18.300] Yeah.
+[00:08:18.920] Yeah.
+[00:08:19.580] Um, it's a mix because depending on where you are in your life cycle of like, oh, you have, you just were able to test and like produce this like hardware or you've like produced it, tested it, gone through many iterations and you have a team that supports it with like additional software.
+[00:08:41.520] Um, companies like these would either outright just buy the product or buy like the whole team, um, and the support that comes with it, uh, depending on what your plan is, how far you want to go with this project.
+[00:08:53.800] I think that, um, if you have a near term of just wanting to produce a single piece of hardware that you can sell to the industry, then, uh, a company like, like these big ones would probably just buy like the intellectual property to, um, what you've created.
+[00:09:09.700] Yeah, that's true.
+[00:09:10.720] Yeah.
+[00:09:10.860] I kind of agree.
+[00:09:11.540] Yeah.
+[00:09:12.060] I feel they're a good example with like, um, the NVIDIA acquired Melanox, the infinite band, like basically what makes like NVIDIA like really, a really smart decision.
+[00:09:22.720] Cause that's kind of like what they actually need because they, NVIDIA have the computing power, but if they have the like high bandwidth of like moving data, they like be non-compatible.
+[00:09:33.820] So, yeah, uh, my idea is kind of, I feel like a company acquires like this startup.
+[00:09:40.860] So they kind of like want their customers, cause like once they're coming out first, they have the ecosystem like acquired already.
+[00:09:48.320] So people will get used to it first.
+[00:09:50.440] So it's really hard to switch.
+[00:09:52.300] Yeah.
+[00:09:52.720] This is my thoughts.
+[00:09:54.120] Right.
+[00:09:55.000] All right.
+[00:09:55.560] So that's, that's all of the interview.
+[00:09:57.180] Yeah.
+[00:09:57.460] Thank you very much for your time.
+[00:09:59.180] Yeah.
+[00:09:59.780] Yeah.
+[00:10:00.200] Yeah.
+[00:10:01.280] Thank you.
+[00:10:02.180] Yeah.
+[00:10:02.760] Uh, talk to you later.
+[00:10:04.000] Yeah.
+[00:10:04.460] See you.
+[00:10:05.600] Bye.
+[00:10:06.320] Bye.
+[00:10:15.550] See you.

@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2800" height="1915" viewBox="0 0 2800 1915" role="img" aria-labelledby="title desc">
+  <title id="title">Packet-to-Inference Operating Sequence and Port Ownership</title>
+  <desc id="desc">Sequence from host setup and packet capture through optional ARM preparation, DMA to GPU, GPU inference, DMA back to FIFO, and packet drain, followed by a compact physical memory-port ownership matrix.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#243447"/></marker>
+    <marker id="ctrlArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#72509b"/></marker>
+    <style>
+      .bg{fill:#fff}.phaseA{fill:#f5f9ff}.phaseB{fill:#f7fbf7}.phaseC{fill:#fffaf0}.head{fill:#e8f1fb;stroke:#245b8a;stroke-width:2}.controlHead{fill:#f1e9fb;stroke:#72509b;stroke-width:2}.computeHead{fill:#e8f5e9;stroke:#367a42;stroke-width:2}.memoryHead{fill:#fff3d6;stroke:#a76b00;stroke-width:2}.warn{fill:#fff0e6;stroke:#b45309;stroke-width:2}.title{font:700 36px 'Segoe UI',sans-serif;fill:#102a43}.label{font:600 17px 'Segoe UI',sans-serif;fill:#102a43;text-anchor:middle}.small{font:15px 'Segoe UI',sans-serif;fill:#334e68;text-anchor:middle}.tiny{font:13px 'Segoe UI',sans-serif;fill:#486581;text-anchor:middle}.life{stroke:#9fb3c8;stroke-width:2;stroke-dasharray:8 8}.msg{stroke:#243447;stroke-width:2.5;marker-end:url(#arrow)}.return{stroke:#72509b;stroke-width:2.5;stroke-dasharray:8 6;marker-end:url(#ctrlArrow)}.num{fill:#243447}.numText{font:700 13px 'Segoe UI',sans-serif;fill:#fff;text-anchor:middle;dominant-baseline:middle}.msgText{font:600 15px 'Segoe UI',sans-serif;fill:#243447;text-anchor:middle}.phaseLabel{font:700 16px 'Segoe UI',sans-serif;fill:#486581}.tableHead{fill:#d9e2ec;stroke:#627d98;stroke-width:1.5}.tableCell{fill:#fff;stroke:#9fb3c8;stroke-width:1.2}.tableText{font:14px 'Segoe UI',sans-serif;fill:#243b53;text-anchor:middle}.tableStrong{font:600 14px 'Segoe UI',sans-serif;fill:#102a43;text-anchor:middle}.note{font:15px 'Segoe UI',sans-serif;fill:#5b3412;text-anchor:middle}
+    </style>
+  </defs>
+  <rect class="bg" width="2800" height="1915"/>
+  <text class="title" x="1400" y="52" text-anchor="middle">Packet-to-Inference Sequence and Physical-Port Ownership</text>
+  <text class="small" x="1400" y="84">Host-orchestrated and ARM-alias-orchestrated control converge on the same mode, DMA, and reset interfaces</text>
+
+  <rect class="phaseA" x="70" y="220" width="2660" height="300" rx="14"/>
+  <rect class="phaseB" x="70" y="520" width="2660" height="565" rx="14"/>
+  <rect class="phaseC" x="70" y="1085" width="2660" height="340" rx="14"/>
+  <text class="phaseLabel" x="90" y="250">SETUP + CAPTURE</text>
+  <text class="phaseLabel" x="90" y="550">PROCESS + INFER</text>
+  <text class="phaseLabel" x="90" y="1115">RETURN + DRAIN</text>
+
+  <rect class="controlHead" x="75" y="115" width="260" height="85" rx="12"/><text class="label" x="205" y="150">Host / CPCI</text><text class="tiny" x="205" y="176">or ARM alias control</text>
+  <rect class="head" x="435" y="115" width="260" height="85" rx="12"/><text class="label" x="565" y="150">Input arbiter</text><text class="tiny" x="565" y="176">+ port lookup</text>
+  <rect class="memoryHead" x="795" y="115" width="260" height="85" rx="12"/><text class="label" x="925" y="150">Convertible FIFO</text><text class="tiny" x="925" y="176">256 × 72 BRAM</text>
+  <rect class="computeHead" x="1155" y="115" width="260" height="85" rx="12"/><text class="label" x="1285" y="150">ARM CPU</text><text class="tiny" x="1285" y="176">4-thread FGMT</text>
+  <rect class="memoryHead" x="1515" y="115" width="260" height="85" rx="12"/><text class="label" x="1645" y="150">DMA</text><text class="tiny" x="1645" y="176">READ + COPY</text>
+  <rect class="computeHead" x="1875" y="115" width="260" height="85" rx="12"/><text class="label" x="2005" y="150">GPU</text><text class="tiny" x="2005" y="176">IMEM / core / DMEM</text>
+  <rect class="head" x="2235" y="115" width="260" height="85" rx="12"/><text class="label" x="2365" y="150">Output queues</text><text class="tiny" x="2365" y="176">+ selected egress</text>
+
+  <line class="life" x1="205" y1="200" x2="205" y2="1425"/><line class="life" x1="565" y1="200" x2="565" y2="1425"/><line class="life" x1="925" y1="200" x2="925" y2="1425"/><line class="life" x1="1285" y1="200" x2="1285" y2="1425"/><line class="life" x1="1645" y1="200" x2="1645" y2="1425"/><line class="life" x1="2005" y1="200" x2="2005" y2="1425"/><line class="life" x1="2365" y1="200" x2="2365" y2="1425"/>
+
+  <circle class="num" cx="205" cy="285" r="14"/><text class="numText" x="205" y="285">1</text>
+  <path class="msg" d="M220 285H1990"/><text class="msgText" x="1105" y="273">Hold CPU/GPU in reset; load IMEM and prepare data</text>
+
+  <circle class="num" cx="205" cy="360" r="14"/><text class="numText" x="205" y="360">2</text>
+  <path class="return" d="M220 360H910"/><text class="msgText" x="565" y="348">FIFO_MODE = 0: enable capture</text>
+
+  <circle class="num" cx="565" cy="440" r="14"/><text class="numText" x="565" y="440">3</text>
+  <path class="msg" d="M580 440H910"/><text class="msgText" x="745" y="428">Packet words {ctrl,data}</text>
+  <path class="return" d="M910 480H580"/><text class="msgText" x="745" y="505">in_rdy drops after header length is stored</text>
+
+  <circle class="num" cx="205" cy="590" r="14"/><text class="numText" x="205" y="590">4</text>
+  <path class="return" d="M220 590H1270"/><text class="msgText" x="745" y="578">Optional: mode 1 + CPU scheduler enable</text>
+  <path class="msg" d="M1270 650H940"/><text class="msgText" x="1105" y="638">CPU 0x80–0xEF loads/stores ↔ FIFO[0x00–0x6F]</text>
+  <path class="return" d="M1270 700H220"/><text class="msgText" x="745" y="688">CPU may configure wrapper through 0xF0–0xFF aliases</text>
+
+  <circle class="num" cx="205" cy="775" r="14"/><text class="numText" x="205" y="775">5</text>
+  <path class="return" d="M220 775H1630"/><text class="msgText" x="925" y="763">Set mode 2; program FIFO base, GPU base, length, dir=0; pulse start</text>
+  <path class="msg" d="M1630 835H940"/><text class="msgText" x="1285" y="823">READ primes synchronous FIFO Port B</text>
+  <path class="msg" d="M940 890H1990"/><text class="msgText" x="1465" y="878">COPY: FIFO payload → GPU DMEM, one 64-bit word/cycle</text>
+  <path class="return" d="M1630 935H220"/><text class="msgText" x="925" y="923">dma_active clears after N COPY cycles</text>
+
+  <circle class="num" cx="205" cy="1005" r="14"/><text class="numText" x="205" y="1005">6</text>
+  <path class="return" d="M220 1005H1990"/><text class="msgText" x="1105" y="993">Release GPU reset once: execution starts automatically at PC 0</text>
+  <path class="msg" d="M1990 1045H220"/><text class="msgText" x="1105" y="1033">kernel_done + frozen wrapper cycle count</text>
+
+  <circle class="num" cx="205" cy="1150" r="14"/><text class="numText" x="205" y="1150">7</text>
+  <path class="return" d="M220 1150H1630"/><text class="msgText" x="925" y="1138">Keep mode 2; program dir=1; pulse DMA start</text>
+  <path class="msg" d="M1990 1205H940"/><text class="msgText" x="1465" y="1193">GPU DMEM → FIFO payload; wrapper writes ctrl=00</text>
+  <path class="return" d="M1630 1250H220"/><text class="msgText" x="925" y="1238">dma_active clears</text>
+
+  <circle class="num" cx="205" cy="1310" r="14"/><text class="numText" x="205" y="1310">8</text>
+  <path class="return" d="M220 1310H910"/><text class="msgText" x="565" y="1298">Return to mode 0 before FIFO_DRAIN pulse</text>
+  <path class="msg" d="M940 1365H2350"/><text class="msgText" x="1645" y="1353">Drain header + packet words to output_queues</text>
+
+  <rect class="warn" x="680" y="1390" width="1770" height="72" rx="12"/>
+  <text class="note" x="1565" y="1420">Current drain prefetch assumes continuous out_rdy.</text>
+  <text class="note" x="1565" y="1447">A stall after DRAINING starts can overwrite the prefetched next word and skip it.</text>
+
+  <text class="title" x="1400" y="1515" text-anchor="middle" style="font-size:27px">Physical Port Ownership Matrix</text>
+  <rect class="tableHead" x="190" y="1550" width="360" height="58"/><text class="tableStrong" x="370" y="1585">Condition</text>
+  <rect class="tableHead" x="550" y="1550" width="500" height="58"/><text class="tableStrong" x="800" y="1585">FIFO BRAM Port A</text>
+  <rect class="tableHead" x="1050" y="1550" width="760" height="58"/><text class="tableStrong" x="1430" y="1585">FIFO BRAM Port B</text>
+  <rect class="tableHead" x="1810" y="1550" width="760" height="58"/><text class="tableStrong" x="2190" y="1585">GPU DMEM Port B</text>
+
+  <rect class="tableCell" x="190" y="1608" width="360" height="58"/><text class="tableStrong" x="370" y="1643">mode 0</text>
+  <rect class="tableCell" x="550" y="1608" width="500" height="58"/><text class="tableText" x="800" y="1643">Ingress capture while IDLE/RECEIVING</text>
+  <rect class="tableCell" x="1050" y="1608" width="760" height="58"/><text class="tableText" x="1430" y="1643">FIFO rd_ptr drain path; wrapper proc signals ignored</text>
+  <rect class="tableCell" x="1810" y="1608" width="760" height="58"/><text class="tableText" x="2190" y="1643">PCI unless a previously-started DMA remains active</text>
+
+  <rect class="tableCell" x="190" y="1666" width="360" height="58"/><text class="tableStrong" x="370" y="1701">mode 1 + CPU running</text>
+  <rect class="tableCell" x="550" y="1666" width="500" height="58"/><text class="tableText" x="800" y="1701">No ingress writes</text>
+  <rect class="tableCell" x="1050" y="1666" width="760" height="58"/><text class="tableText" x="1430" y="1701">CPU external-memory bus</text>
+  <rect class="tableCell" x="1810" y="1666" width="760" height="58"/><text class="tableText" x="2190" y="1701">PCI (CPU aliases control regs, not DMEM directly)</text>
+
+  <rect class="tableCell" x="190" y="1724" width="360" height="58"/><text class="tableStrong" x="370" y="1759">mode 1 + CPU not running</text>
+  <rect class="tableCell" x="550" y="1724" width="500" height="58"/><text class="tableText" x="800" y="1759">No ingress writes</text>
+  <rect class="tableCell" x="1050" y="1724" width="760" height="58"/><text class="tableText" x="1430" y="1759">PCI indirect FIFO-BRAM registers</text>
+  <rect class="tableCell" x="1810" y="1724" width="760" height="58"/><text class="tableText" x="2190" y="1759">PCI</text>
+
+  <rect class="tableCell" x="190" y="1782" width="360" height="58"/><text class="tableStrong" x="370" y="1817">mode 2 + DMA active</text>
+  <rect class="tableCell" x="550" y="1782" width="500" height="58"/><text class="tableText" x="800" y="1817">No ingress writes</text>
+  <rect class="tableCell" x="1050" y="1782" width="760" height="58"/><text class="tableText" x="1430" y="1817">DMA FIFO side</text>
+  <rect class="tableCell" x="1810" y="1782" width="760" height="58"/><text class="tableText" x="2190" y="1817">DMA GPU side</text>
+
+  <rect class="tableCell" x="190" y="1840" width="360" height="58"/><text class="tableStrong" x="370" y="1875">mode 2 + DMA idle</text>
+  <rect class="tableCell" x="550" y="1840" width="500" height="58"/><text class="tableText" x="800" y="1875">No ingress writes</text>
+  <rect class="tableCell" x="1050" y="1840" width="760" height="58"/><text class="tableText" x="1430" y="1875">PCI indirect FIFO-BRAM registers</text>
+  <rect class="tableCell" x="1810" y="1840" width="760" height="58"/><text class="tableText" x="2190" y="1875">PCI GPU-DMEM registers</text>
+</svg>

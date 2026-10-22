@@ -1,0 +1,99 @@
+flowchart LR
+    WRAP["lab8_wrapper<br/>GPU reset, status, cycle counter<br/>IMEM/DMEM external Port B"]
+
+    subgraph TOP["gpu_top"]
+        IMEM["instruction_memory<br/>1024 x 32 dual-port BRAM<br/>synchronous read"]
+        DMEM["data_memory<br/>1024 x 64 dual-port BRAM<br/>synchronous read-first"]
+
+        subgraph CORE["core_top - six stages: IF -> ID -> EX1 -> EX2 -> EX3 -> WB"]
+            PC["program_counter<br/>10-bit, branch priority"]
+            FETCH["fetch_stage<br/>registered PC + valid"]
+
+            subgraph DECM["decode_stage"]
+                IDEC["instruction_decoder<br/>opcode / dtype / immediates<br/>LD ST BLT BGE BCAST HALT"]
+                RF["register_file<br/>16 x 64, 3R/1W<br/>R0=0; R13-R15 special"]
+            end
+
+            IDEX["pipeline_reg_idex<br/>operands + controls + PC"]
+            BR["EX1 branch compare<br/>signed packed 64-bit<br/>target = PC + offset mod 1024"]
+
+            subgraph EXEC["execute_stage - aligned three-cycle datapaths"]
+                OPB["EX1 operand-B mux<br/>register / immediate"]
+                BCAST["BCAST 4:1 lane select<br/>replicate selected 16-bit lane<br/>then SIMD input register"]
+
+                subgraph SIMD["simd_alu"]
+                    I16["one int16_alu<br/>lane 0 combinational<br/>register then replicate x4"]
+                    BFALU["four bf16_alu lanes<br/>2 internal phases<br/>ADD SUB MUL MAX MOV RELU"]
+                    DTYPE["EX3 dtype mux<br/>BF16 only when dtype=100"]
+                    I16 --> DTYPE
+                    BFALU --> DTYPE
+                end
+
+                FMA["four bf16_fma_unit lanes<br/>EX1 multiply/sort<br/>EX2 align + add/sub<br/>EX3 normalize + special mux"]
+                RMUX["EX3 result mux<br/>SIMD / FMA"]
+                MEMP["LD/ST address + store-data pipe<br/>low10(base)+low10(offset)<br/>active at DMEM Port A in EX3"]
+
+                OPB --> BCAST
+                BCAST --> I16
+                BCAST --> BFALU
+                DTYPE --> RMUX
+                FMA --> RMUX
+                OPB --> MEMP
+            end
+
+            C12["pipeline_reg_ex<br/>EX1/EX2 control rail"]
+            C23["pipeline_reg_ex<br/>EX2/EX3 control rail"]
+            EXWB["pipeline_reg_exwb<br/>EX3 result + control"]
+            WB["writeback_stage<br/>DMEM load / ALU mux"]
+            HAZ["hazard_unit<br/>RAW compare against<br/>EX1, EX2, EX3, WB<br/>stall only; no forwarding"]
+            HALT["sticky halted_r<br/>kernel_done"]
+
+            PC -->|"address"| IMEM
+            PC --> FETCH
+            IMEM -->|"registered instruction"| IDEC
+            FETCH -->|"PC + valid"| IDEC
+            RF --> IDEC
+            IDEC --> IDEX
+            IDEX --> OPB
+            IDEX --> FMA
+            IDEX --> BR
+            IDEX --> C12 --> C23 --> EXWB
+            RMUX --> EXWB
+            EXWB --> WB
+            WB -->|"sync register write"| RF
+            MEMP <--> DMEM
+            DMEM -->|"registered load data"| WB
+
+            IDEC -. actual RF source addresses .-> HAZ
+            IDEX -.-> HAZ
+            C12 -.-> HAZ
+            C23 -.-> HAZ
+            EXWB -.-> HAZ
+            HAZ -. hold front end and bubble ID/EX .-> PC
+            HAZ -.-> FETCH
+            HAZ -.-> IDEX
+            BR -. taken branch redirect + flush .-> PC
+            BR -.-> FETCH
+            BR -.-> IDEX
+            EXWB -. HALT reaches WB .-> HALT
+            HALT -. gate PC, IMEM read, core DMEM write .-> PC
+            HALT -.-> MEMP
+        end
+    end
+
+    WRAP <--> IMEM
+    WRAP <--> DMEM
+    WRAP -. reset and fixed launch IDs .-> CORE
+    HALT -. kernel_done .-> WRAP
+
+    NOTE["Current RTL: BF16/FMA is four-lane.<br/>Integer operations use only lane 0 and replicate the result.<br/>HALT does not flush younger pipeline work or gate RF writeback."]
+    NOTE -.-> CORE
+
+    classDef pipe fill:#eef1f4,stroke:#66717d,color:#1f2933;
+    classDef compute fill:#e8f5e9,stroke:#367a42,color:#17351e;
+    classDef memory fill:#fff3d6,stroke:#a76b00,color:#4f3400;
+    classDef control fill:#f1e9fb,stroke:#72509b,color:#352046;
+    class IDEX,C12,C23,EXWB,WB pipe;
+    class IDEC,RF,OPB,BCAST,I16,BFALU,DTYPE,FMA,RMUX,MEMP,BR compute;
+    class IMEM,DMEM memory;
+    class WRAP,PC,FETCH,HAZ,HALT,NOTE control;
